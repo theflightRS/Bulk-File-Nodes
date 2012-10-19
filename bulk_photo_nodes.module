@@ -267,19 +267,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
     $form['nodes'][$key]['add_node']['#parents'] = array(
       'nodes', $key, 'add_node',
     );
-    // module_load_include('inc', 'node', 'node.pages');
-    // $form['nodes'][$key]['add_node'] = node_add($node_type);
-    // $form['nodes'][$key]['add_node']['#parents'] = array(
-    //   'nodes', "$key", 'add_node',
-    // );
-    // $form['nodes'][$key]['add_node']['#array_parents'] = array(
-    //   'nodes', "$key", 'add_node',
-    // );
-    // unset($form['nodes'][$key]['add_node']['#form_id']);
-    // unset($form['nodes'][$key]['add_node']['form_id']);
-    // $form['nodes'][$key]['add_node']['additional_settings']['#tree'] = TRUE;
-    // $form['nodes'][$key]['add_node']['#node_edit_form'] = FALSE;
-
 
     field_attach_form('node', $node, $form['nodes'][$key]['add_node'], $form_state);
     $form['nodes'][$key]['body'] = $form['nodes'][$key]['add_node']['body'];
