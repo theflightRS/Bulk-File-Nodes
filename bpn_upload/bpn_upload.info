@@ -1,0 +1,4 @@
+name = Bulk Photo Nodes Upload
+core = 7.x
+dependencies[] = plupload
+dependencies[] = bulk_photo_nodes

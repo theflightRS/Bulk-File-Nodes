@@ -1,0 +1,445 @@
+<?php
+/**
+ * Implements hook_bpn_upload().
+ *
+ * Defines a multi-step form to use with bulk_photo_nodes.
+ */
+function bulk_photo_nodes_bpn_upload() {
+  return 'bpn_multistep_form';
+}
+
+/**
+ * Defines a list of forms to use in bpn_multistep_form.
+ *
+ * @see bpn_multistep_form()
+ */
+function _form_bpn_steps() {
+  return array(
+    1 => array(
+      'form' => 'bulk_photo_plupload',
+    ),
+    2 => array(
+      'form' => 'bulk_photo_nodes_add',
+    ),
+  );
+}
+
+/**
+ * Form constructor multi-step bulk photo nodes.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @see bpn_prev_submit()
+ * @ingroup forms
+ */
+function bpn_multistep_form($form, &$form_state) {
+  if (empty($form_state['step'])) {
+    $form_state['step'] = 1;
+    $form_state['step_information'] = _form_bpn_steps();
+  }
+  $step = &$form_state['step'];
+  // Generate form from next form builder defined in _form_bpn_steps.
+  $form = $form_state['step_information'][$step]['form']($form, $form_state);
+  if ($step > 1) {
+    $form['prev'] = array(
+      '#type' => 'submit',
+      '#value' => t('Previous'),
+      '#name' => 'prev',
+      '#submit' => array('bpn_prev_submit'),
+      '#limit_validation_errors' => array(),
+    );
+  }
+  if ($step < count($form_state['step_information'])) {
+    $form['next'] = array(
+      '#type' => 'submit',
+      '#value' => t('Next'),
+      '#name' => 'next',
+      '#validate' => array(),
+      '#submit' => array('bpn_next_submit'),
+    );
+    if (function_exists($form_state['step_information'][$step]['form'] . '_submit')) {
+      array_unshift($form['next']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
+    }
+    if (function_exists($form_state['step_information'][$step]['form'] . '_validate')) {
+      array_unshift($form['next']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
+    }
+  }
+  else {
+    $form['finish'] = array(
+      '#type' => 'submit',
+      '#validate' => array(),
+      '#value' => t('Finish'),
+    );
+    if (function_exists($form_state['step_information'][$step]['form'] . '_submit')) {
+      array_unshift($form['finish']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
+    }
+    if (function_exists($form_state['step_information'][$step]['form'] . '_validate')) {
+      array_unshift($form['finish']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
+    }
+  }
+  return $form;
+}
+
+/**
+ * Form submission handler bpn_multistep_form().
+ *
+ * Moves the form onto the next step.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @ingroup forms
+ */
+function bpn_prev_submit($form, &$form_state) {
+  $current_step = &$form_state['step'];
+  $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
+  if ($current_step > 1) {
+    $current_step--;
+    $form_state['values'] = $form_state['step_information'][$current_step]['stored_values'];
+  }
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Form submission handler bpn_multistep_form().
+ *
+ * Moves the form back a step.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @ingroup forms
+ */
+function bpn_next_submit($form, &$form_state) {
+  $current_step = &$form_state['step'];
+  $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
+  if ($current_step < count($form_state['step_information'])) {
+    $current_step++;
+    if (!empty($form_state['step_information'][$current_step]['stored_values'])) {
+      $form_state['values'] = $form_state['step_information'][$current_step]['stored_values'];
+    }
+    else {
+      $form_state['values'] = array();
+    }
+    $form_state['rebuild'] = TRUE;
+  }
+}
+
+/**
+ * Form constructor for step one of bpn_multistep_form().
+ *
+ * @see bulk_photo_plupload_submit()
+ * @see _form_bpn_steps()
+ * @ingroup forms
+ */
+function bulk_photo_plupload($form, &$form_state) {
+  drupal_set_title(t('Upload Images'));
+  $form = array(
+    'plupload' => array(
+      '#type' => 'plupload',
+      '#required' => TRUE,
+    ),
+  );
+  return $form;
+}
+
+/**
+ * Form submissions handler for bulk_photo_plupload().
+ */
+function bulk_photo_plupload_submit($form, &$form_state) {
+  $saved_files = array();
+  $scheme = variable_get('file_default_scheme', 'public') . '://';
+  foreach ($form_state['values']['plupload'] as $uploaded_file) {
+    if ($uploaded_file['status'] == 'done') {
+      $source = $uploaded_file['tmppath'];
+      $destination = file_stream_wrapper_uri_normalize($scheme . $uploaded_file['name']);
+      $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
+      $file = plupload_file_uri_to_object($destination);
+      file_save($file);
+      $form_state['values']['saved_files'][] = $file;
+    }
+    else {
+      form_set_error('plupload', "Upload of {$uploaded_file['name']} failed");
+    }
+  }
+}
+
+/**
+ * Form constructor for step two of bpn_multistep_form().
+ *
+ * @see bpn_multistep_form_submit()
+ * @see _form_bpn_steps()
+ * @ingroup forms
+ */
+function bulk_photo_nodes_add($form, &$form_state) {
+  drupal_set_title(t('Bulk Add Info'));
+  $form = array();
+  $form['#attached']['css'] = array(
+    drupal_get_path('module', 'bulk_photo_nodes') . '/bulk_photo_nodes_default.css',
+  );
+  $bpn_var = variable_get('bulk_photo_node_types');
+  $form['nodes'] = array(
+    '#type' => 'fieldset',
+    '#collapsed' => FALSE,
+    '#tree' => TRUE,
+    '#attributes' => array(
+      'class' => array(
+        'bpn-left bpn-info clearfix',
+      ),
+    ),
+  );
+  foreach ($form_state['step_information'][1]['stored_values']['saved_files'] as $key => $file) {
+    if (array_key_exists('removal', $form_state) && $form_state['removal'] == $key) {
+      continue;
+    }
+    $vars = array(
+      'style_name' => 'bulk_photo_nodes',
+      'path' => $file->uri,
+      'attributes' => array('class' => 'bpn-info-node-image'),
+    );
+    $node = new stdClass();
+    // @todo this looks bad, lets use something else to get the node type.
+    $node_type = strtr(arg(2), '-', '_');
+    $node->type = $node_type;
+    node_object_prepare($node);
+    $image_field = $bpn_var[$node_type];
+    $markup = theme('image_style', $vars);
+    $form['nodes'][$key] = array(
+      '#type' => 'fieldset',
+      '#collapsed' => FALSE,
+      '#tree' => TRUE,
+      '#prefix' => "<div id=nodes-{$key}-wrapper>",
+      '#suffix' => "</div>",
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['left'] = array(
+      '#type' => 'fieldset',
+      '#collapsed' => FALSE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-left clearfix',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['left']['image'] = array(
+      '#type' => 'markup',
+      '#markup' => $markup,
+      '#tree' => TRUE,
+    );
+    $form['nodes'][$key]['left']["delete_{$key}"] = array(
+      '#type' => 'submit',
+      '#value' => 'Delete',
+      '#name' => $key,
+      '#limit_validation_errors' => array(),
+      '#validate' => array('bulk_photo_nodes_add_validate'),
+      '#submit' => array('bpn_delete_node'),
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-delete',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['right'] = array(
+      '#type' => 'fieldset',
+      '#collapsed' => FALSE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-right clearfix',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['right']['node'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Edit Additional Info',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#tree' => TRUE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-additional',
+        ),
+      ),
+    );
+    $form['node_type'] = array(
+      '#type' => 'value',
+      '#value' => $node_type,
+    );
+    $form['nodes'][$key]['node']['right']['#parents'] = array(
+      'nodes', $key, 'node', 'right',
+    );
+
+    // Attach all fields found in the node form.
+    field_attach_form('node', $node, $form['nodes'][$key]['right']['node'], $form_state);
+
+    // Manually attach file from plupload.
+    unset($form['nodes'][$key]['right']['node'][$image_field]);
+    $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#type'] = 'value';
+    $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#value'] = (array) $file;
+
+    // Manually add a title form item since it's not a field.
+    $form['nodes'][$key]['right']['title'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Title',
+      '#required' => TRUE,
+      '#weight' => -10,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-title',
+        ),
+      ),
+    );
+
+    // Move body field around to proper fieldset.
+    $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['right']['node']['body'];
+    $form['nodes'][$key]['right']['node']['body']['#weight'] = 0;
+    unset($form['nodes'][$key]['right']['node']['body']);
+  }
+  $form['override_fields'] = array(
+    '#type' => 'fieldset',
+    '#attributes' => array(
+      'class' => array(
+        'bpn-right clearfix',
+      ),
+    ),
+  );
+  $form['override_fields']['fields'] = array(
+    '#parents' => array(
+      'override_fields', 'fields',
+    ),
+    '#tree' => TRUE,
+  );
+  $form['override_fields']['fields']['title_display'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
+    '#weight' => -10,
+  );
+  field_attach_form('node', $node, $form['override_fields']['fields'], $form_state);
+  unset($form['override_fields']['fields'][$image_field]);
+  return $form;
+}
+
+function bulk_photo_nodes_add_validate($form, &$form_state) {
+  // $form_state['removal'] = 
+  // form_error($form, 'This is an error');
+  // return FALSE;
+}
+
+/**
+ * Form submission handler for bpn_multistep_form().
+ *
+ * @see bulk_photo_nodes_add()
+ */
+function bpn_multistep_form_submit($form, &$form_state) {
+  // Set the values for the current step.
+  $current_step = &$form_state['step'];
+  $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
+
+  // Convenience short aliases.
+  $node_type = $form_state['step_information'][$current_step]['stored_values']['node_type'];
+  $nodes =& $form_state['step_information'][$current_step]['stored_values']['nodes'];
+  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields']['fields'];
+
+  $node_count = 0;
+  foreach ($nodes as $key => $outer_node) {
+    if (bpn_save_node($node_type, $outer_node, $node_overrides)) {
+      $node_count++;
+    }
+  }
+  drupal_set_message("$node_count Photos saved successfully");
+}
+
+/**
+ * Sets the required/optional state for form items in bulk_nodes_add().
+ *
+ * @param int $key
+ *   The key for a particular node in bulk_nodes_add().
+ */
+function bpn_set_state(&$form, $key) {
+  foreach (element_children($form['nodes'][$key]['node']) as $field_name) {
+    // Iterate through each field.
+    if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#required'])) {
+      $state_id = "#edit-override-fields-" . strtr($field_name, '_', '-') . "-und-0-value";
+      $state_condition = array(
+        'required' => array(
+          $state_id => array(),
+        ),
+        'optional' => array(
+          $state_id => array(),
+        ),
+      );
+      if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type'])) {
+        switch ($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type']) {
+          case 'textfield':
+            $state_condition['required'][$state_id]['filled'] = false;
+            $state_condition['optional'][$state_id]['filled'] = true;
+            break;
+
+          case 'select':
+            $state_condition['required'][$state_id]['value'] = false;
+            $state_condition['optional'][$state_id]['value'] = true;
+            break;
+        }
+      }
+      $form['nodes'][$key]['node'][$field_name]['#states'] = $state_condition;
+    }
+  }
+}
+
+/**
+ * Deletes an individual bulk photo node.
+ */
+function bpn_delete_node($form, &$form_state) {
+  $key = $form_state['triggering_element']['#name'];
+  $form_state['removal'] = $key;
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Saves an individual bulk photo node.
+ *
+ * @param string $node_type
+ *   The content type of the node.
+ *
+ * @param array $node_fields
+ *   The fields of the given node.
+ *
+ * @param array $node_overrides
+ *   Fields that will override $node_fields if they are empty.
+ *
+ * @return bool
+ *   TRUE if the node was saved successfully, FALSE otherwise.
+ */
+function bpn_save_node($node_type, $node_fields, $node_overrides) {
+
+  // Prepare a new node for saving.
+  $node_fields['right']['node']['body'] = $node_fields['right']['body'];
+  $node_fields['right']['node']['title'] = $node_fields['right']['title'];
+  $node = new stdClass();
+  $node->type = $node_type;
+  node_object_prepare($node);
+
+  foreach ($node_fields['right']['node'] as $field_name => $field_values) {
+    // Iterate through fields. Convert form values to properties of the node.
+    $node->$field_name = $field_values;
+    if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
+      // This is a mult-value field. Iterate through it.
+      foreach ($field_values[LANGUAGE_NONE] as $key => $field) {
+        if (!empty($field['value'])) {
+          if (!empty($node_overrides[$field_name][LANGUAGE_NONE][$key])) {
+            $node->$field_name[LANGUAGE_NONE][$key] = $node_overrides[$field_name][LANGUAGE_NONE][$key];
+          }
+        }
+      }
+    }
+    elseif (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) == 1) {
+      // This is a single value field.
+      if (!empty($node_overrides[$field_name][LANGUAGE_NONE][0]['value'])) {
+        $node->$field_name = $node_overrides[$field_name];
+      }
+    }
+  }
+  node_save($node);
+  return (!empty($node->nid)) ? TRUE : FALSE;
+}
