@@ -276,10 +276,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
   );
   foreach ($form_state['step_information'][1]['stored_values']['saved_files'] as $key => $file) {
     if (array_key_exists('removal', $form_state) && $form_state['removal'] == $key) {
-      $form['blah'] = array(
-        '#type' => 'markup',
-        '#markup' => '<h1>blahblahblha</h1>',
-      );
       continue;
     }
     $vars = array(
@@ -329,7 +325,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
     );
     // Attach all fields found in the node form.
     field_attach_form('node', $node, $form['nodes'][$key]['node'], $form_state);
-    // bpn_set_state($form, $key);
     // Move around body field, create a title form item.
     $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
     unset($form['nodes'][$key]['node'][$image_field]);
@@ -385,15 +380,12 @@ function bpn_multistep_form_submit($form, &$form_state) {
 
   $node_count = 0;
   foreach ($nodes as $key => $outer_node) {
+    // Prepare a new node for saving
     $outer_node['node']['body'] = $outer_node['body'];
     $outer_node['node']['title'] = $outer_node['title'];
-    unset($outer_node['body']);
-    unset($outer_node['title']);
-    // Prepare a new node for saving
     $node = new stdClass();
     $node->type = $node_type;
     node_object_prepare($node);
-    // dpm($node);
     foreach ($outer_node['node'] as $field_name => $field_values) {
       // Iterate through fields. Convert form values to properties of the node.
       $node->$field_name = $field_values;
