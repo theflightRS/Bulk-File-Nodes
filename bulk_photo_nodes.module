@@ -346,8 +346,10 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#type' => 'textfield',
       '#title' => 'Title',
       '#required' => TRUE,
+      '#weight' => -10,
     );
     $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
+    $form['nodes'][$key]['node']['body']['#weight'] = 0;
     unset($form['nodes'][$key]['node']['body']);
   }
   $form['override_fields'] = array(
