@@ -348,7 +348,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
   );
   $form['override_fields']['fields'] = array(
     '#parents' => array(
-      'override_fields',
+      'override_fields', 'fields',
     ),
     '#tree' => TRUE,
   );
@@ -376,7 +376,7 @@ function bpn_multistep_form_submit($form, &$form_state) {
   // Convenience short aliases.
   $node_type = $form_state['step_information'][$current_step]['stored_values']['node_type'];
   $nodes =& $form_state['step_information'][$current_step]['stored_values']['nodes'];
-  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields'];
+  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields']['fields'];
 
   $node_count = 0;
   foreach ($nodes as $key => $outer_node) {
