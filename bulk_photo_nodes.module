@@ -270,7 +270,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     '#tree' => TRUE,
     '#attributes' => array(
       'class' => array(
-        'bulk-nodes-edit',
+        'bpn-info',
       ),
     ),
   );
@@ -342,7 +342,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     '#title' => t('Bulk Settings'),
     '#attributes' => array(
       'class' => array(
-        'bulk-info',
+        'bpn-info-bulk',
       ),
     ),
   );

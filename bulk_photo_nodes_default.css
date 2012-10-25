@@ -1,0 +1,11 @@
+/* line 1, sass/bulk_photo_nodes_default.scss */
+.bpn-info {
+  float: left;
+  width: 67%;
+}
+
+/* line 6, sass/bulk_photo_nodes_default.scss */
+.bpn-info-bulk {
+  float: right;
+  width: 30%;
+}
