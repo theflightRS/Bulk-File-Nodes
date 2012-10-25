@@ -3,18 +3,59 @@
   border: none;
   padding: 0;
   margin: 0;
+  background: transparent;
 }
-/* line 8, sass/bulk_photo_nodes_default.scss */
+/* line 9, sass/bulk_photo_nodes_default.scss */
 #bpn-multistep-form fieldset .fieldset-wrapper {
   padding: 0;
 }
-/* line 12, sass/bulk_photo_nodes_default.scss */
-#bpn-multistep-form .bpn-info {
+/* line 16, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-left {
   float: left;
   width: 67%;
 }
-/* line 17, sass/bulk_photo_nodes_default.scss */
-#bpn-multistep-form .bpn-info-bulk {
+/* line 21, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-right {
   float: right;
   width: 30%;
+}
+/* line 24, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-right > div {
+  position: relative;
+  border: 1px solid #ccc;
+  padding: 1em;
+}
+/* line 31, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node {
+  position: relative;
+  border: 1px solid #ccc;
+  padding: 1em;
+  margin-bottom: 2em;
+}
+/* line 38, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node-left {
+  float: left;
+  width: 30%;
+}
+/* line 43, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node-right {
+  float: right;
+  width: 67%;
+}
+/* line 48, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node-image {
+  float: left;
+}
+/* line 52, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node-delete {
+  float: left;
+  clear: left;
+  margin-top: 1em;
+}
+/* line 64, sass/bulk_photo_nodes_default.scss */
+#bpn-multistep-form .bpn-info-node-additional {
+  border: 1px solid #CCC;
+  padding: 2.5em 0 0 0;
+  position: relative;
+  margin: 1em 0;
 }

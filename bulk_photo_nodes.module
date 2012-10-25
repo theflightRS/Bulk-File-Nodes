@@ -270,7 +270,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     '#tree' => TRUE,
     '#attributes' => array(
       'class' => array(
-        'bpn-info',
+        'bpn-left bpn-info clearfix',
       ),
     ),
   );
@@ -281,7 +281,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     $vars = array(
       'style_name' => 'bulk_photo_nodes',
       'path' => $file->uri,
-      'attributes' => array('class' => 'bpn-info-image'),
+      'attributes' => array('class' => 'bpn-info-node-image'),
     );
     $node = new stdClass();
     // @todo this looks bad, lets use something else to get the node type.
@@ -296,13 +296,27 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#tree' => TRUE,
       '#prefix' => "<div id=nodes-{$key}-wrapper>",
       '#suffix' => "</div>",
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node',
+        ),
+      ),
     );
-    $form['nodes'][$key]['image'] = array(
+    $form['nodes'][$key]['left'] = array(
+      '#type' => 'fieldset',
+      '#collapsed' => FALSE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-left clearfix',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['left']['image'] = array(
       '#type' => 'markup',
       '#markup' => $markup,
       '#tree' => TRUE,
     );
-    $form['nodes'][$key]["delete_{$key}"] = array(
+    $form['nodes'][$key]['left']["delete_{$key}"] = array(
       '#type' => 'submit',
       '#value' => 'Delete',
       '#name' => $key,
@@ -311,11 +325,20 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#submit' => array('bpn_delete_node'),
       '#attributes' => array(
         'class' => array(
-          'bpn-info-image-delete',
+          'bpn-info-node-delete',
         ),
       ),
     );
-    $form['nodes'][$key]['node'] = array(
+    $form['nodes'][$key]['right'] = array(
+      '#type' => 'fieldset',
+      '#collapsed' => FALSE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-right clearfix',
+        ),
+      ),
+    );
+    $form['nodes'][$key]['right']['node'] = array(
       '#type' => 'fieldset',
       '#title' => 'Edit Additional Info',
       '#collapsible' => TRUE,
@@ -323,7 +346,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#tree' => TRUE,
       '#attributes' => array(
         'class' => array(
-          'bpn-info-additional',
+          'bpn-info-node-additional',
         ),
       ),
     );
@@ -342,22 +365,26 @@ function bulk_photo_nodes_add($form, &$form_state) {
     unset($form['nodes'][$key]['node'][$image_field]);
     $form['nodes'][$key]['node'][$image_field]['und'][0]['#type'] = 'value';
     $form['nodes'][$key]['node'][$image_field]['und'][0]['#value'] = (array) $file;
-    $form['nodes'][$key]['title'] = array(
+    $form['nodes'][$key]['right']['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
       '#required' => TRUE,
       '#weight' => -10,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-node-title',
+        ),
+      ),
     );
-    $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
+    $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['node']['body'];
     $form['nodes'][$key]['node']['body']['#weight'] = 0;
     unset($form['nodes'][$key]['node']['body']);
   }
   $form['override_fields'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Bulk Settings'),
     '#attributes' => array(
       'class' => array(
-        'bpn-info-bulk',
+        'bpn-right clearfix',
       ),
     ),
   );
@@ -369,7 +396,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
   );
   $form['override_fields']['fields']['title_display'] = array(
     '#type' => 'markup',
-    '#markup' => '<p>(applies to all photos, unless overridden)</p>',
+    '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
     '#weight' => -10,
   );
   field_attach_form('node', $node, $form['override_fields']['fields'], $form_state);
@@ -455,7 +482,8 @@ function bpn_delete_node($form, &$form_state) {
  *   TRUE if the node was saved successfully, FALSE otherwise.
  */
 function bpn_save_node($node_type, $node_fields, $node_overrides) {
-  // Prepare a new node for saving
+
+  // Prepare a new node for saving.
   $node_fields['node']['body'] = $node_fields['body'];
   $node_fields['node']['title'] = $node_fields['title'];
   $node = new stdClass();

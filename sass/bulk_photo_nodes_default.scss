@@ -3,19 +3,75 @@
     border: none;
     padding: 0;
     margin: 0;
+    background: transparent;
   }
 
   fieldset .fieldset-wrapper {
     padding: 0;
   }
 
-  .bpn-info {
+  fieldset .fieldset-legend {
+  }
+
+  .bpn-left {
     float: left;
     width: 67%;
   }
 
-  .bpn-info-bulk {
+  .bpn-right {
     float: right;
     width: 30%;
-   }
+    > div {
+      position: relative;
+      border: 1px solid #ccc;
+      padding: 1em;
+    }
+  }
+
+  .bpn-info-node {
+    position: relative;
+    border: 1px solid #ccc;
+    padding: 1em;
+    margin-bottom: 2em;
+  }
+
+  .bpn-info-node-left {
+    float: left;
+    width: 30%;
+  }
+
+  .bpn-info-node-right {
+    float: right;
+    width: 67%;
+  }
+
+  .bpn-info-node-image {
+    float: left;
+  }
+
+  .bpn-info-node-delete {
+    float: left;
+    clear: left;
+    margin-top: 1em;
+  }
+
+  .bpn-info-node-title {
+  }
+
+  .bpn-info-node-description {
+  }
+
+  .bpn-info-node-additional {
+    border: 1px solid #CCC;
+    padding: 2.5em 0 0 0;
+    position: relative;
+    margin: 1em 0;
+  }
+
+  #edit-prev {
+  }
+
+  #edit-finish {
+  }
+
 }
