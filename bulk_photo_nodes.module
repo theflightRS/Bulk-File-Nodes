@@ -7,6 +7,16 @@
 /**
  * Implements hook_permission().
  */
+
+/**
+ * Implements hook_init().
+ */
+function bulk_photo_nodes_init() {
+}
+
+/**
+ * Implements hook_permission().
+ */
 function bulk_photo_nodes_permission() {
   return array(
     'create bulk photo nodes' => array(
