@@ -1,1 +1,41 @@
 <?php
+/**
+ * Implements hook_bpn_upload().
+ *
+ * Defines a multi-step form to use with bulk_photo_nodes.
+ */
+function bpn_flickr_bpn_upload() {
+  return 'bpn_flickr_form';
+}
+
+/**
+ * Implements hook_form().
+ */
+function bpn_flickr_form($form, &$form_state) {
+  $flickr = bpn_flickr_get_api();
+  $user = $flickr->people_findByUsername('rb06');
+  $sets = bpn_flickr_get_sets($user);
+  dpm($sets);
+
+  $form['hi'] = array(
+    '#markup' => '<p>hi</p>'
+  );
+  return $form;
+}
+
+function bpn_flickr_get_api() {
+  $flickr = &drupal_static(__FUNCTION__);
+  if (!isset($flickr)) {
+    $flickr = flickrapi_phpFlickr();
+  }
+  return $flickr;
+}
+
+/**
+ * Get the photosets for a user
+ */
+function bpn_flickr_get_sets($user) {
+  $flickr = bpn_flickr_get_api();
+
+  return $flickr->photosets_getList($user['nsid']);
+}
