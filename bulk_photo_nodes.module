@@ -5,6 +5,17 @@
  */
 
 /**
+ * Implements hook_permission().
+ */
+function bulk_photo_nodes_permission() {
+  return array(
+    'create bulk photo nodes' => array(
+      'title' => t('Create bulk photo nodes'),
+    ),
+  );
+}
+
+/**
  * Implements hook_menu_alter().
  */
 function bulk_photo_nodes_menu_alter(&$items) {
@@ -13,6 +24,7 @@ function bulk_photo_nodes_menu_alter(&$items) {
     foreach ($bpn_var as $node_type => $image_field) {
       $node_type = strtr($node_type, '_', '-');
       $items["node/add/$node_type"]['page callback'] = 'bulk_photo_node_page';
+      $items['access arguments'] = array('create bulk photo nodes');
       $items["node/add/$node_type"]['page arguments'] = array(2);
     }
   }
@@ -98,6 +110,8 @@ function _get_bpn_image_field($node_type) {
 
 /**
  * Implements hook_bpn_upload().
+ *
+ * This is how modules define a multi-step forms to surface.
  */
 function bulk_photo_nodes_bpn_upload() {
   return 'bpn_multistep_form';
@@ -105,13 +119,13 @@ function bulk_photo_nodes_bpn_upload() {
 
 function _form_bpn_steps() {
   return array(
-      1 => array(
-        'form' => 'bulk_photo_plupload',
-      ),
-      2 => array(
-        'form' => 'bulk_photo_nodes_add',
-      ),
-    );
+    1 => array(
+      'form' => 'bulk_photo_plupload',
+    ),
+    2 => array(
+      'form' => 'bulk_photo_nodes_add',
+    ),
+  );
 }
 
 function bpn_multistep_form($form, &$form_state) {
@@ -120,6 +134,7 @@ function bpn_multistep_form($form, &$form_state) {
     $form_state['step_information'] = _form_bpn_steps();
   }
   $step = &$form_state['step'];
+  // Generate form from next form builder defined in _form_bpn_steps.
   $form = $form_state['step_information'][$step]['form']($form, $form_state);
   if ($step > 1) {
     $form['prev'] = array(
@@ -135,15 +150,28 @@ function bpn_multistep_form($form, &$form_state) {
       '#type' => 'submit',
       '#value' => t('Next'),
       '#name' => 'next',
+      '#validate' => array(),
       '#submit' => array('bpn_next_submit'),
     );
+    if (function_exists($form_state['step_information'][$step]['form'] . '_submit')) {
+      array_unshift($form['next']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
+    }
+    if (function_exists($form_state['step_information'][$step]['form'] . '_validate')) {
+      array_unshift($form['next']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
+    }
   }
   else {
     $form['finish'] = array(
       '#type' => 'submit',
-      // '#submit' => 'bpn_multistep_form_final_submit',
+      '#validate' => array(),
       '#value' => t('Finish'),
     );
+    if (function_exists($form_state['step_information'][$step]['form'] . '_submit')) {
+      array_unshift($form['finish']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
+    }
+    if (function_exists($form_state['step_information'][$step]['form'] . '_validate')) {
+      array_unshift($form['finish']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
+    }
   }
   return $form;
 }
@@ -170,11 +198,7 @@ function bpn_next_submit($form, &$form_state) {
       $form_state['values'] = array();
     }
     $form_state['rebuild'] = TRUE;
-    return;
   }
-}
-
-function bpn_finish_submit($form, &$form_state) {
 }
 
 function bulk_photo_node_page($node_type) {
@@ -188,14 +212,26 @@ function bulk_photo_node_page($node_type) {
     return $content;
   }
   else {
-    return drupal_render(node_add($node_type));
+    $form = node_add($node_type);
+    return $form;
   }
 }
 
-function bulk_save_photos($form, &$form_state) {
+function bulk_photo_plupload($form, &$form_state) {
+  drupal_set_title(t('Upload Images'));
+  $form = array(
+    'plupload' => array(
+      '#type' => 'plupload',
+      '#required' => TRUE,
+    ),
+  );
+  return $form;
+}
+
+function bulk_photo_plupload_submit($form, &$form_state) {
   $saved_files = array();
   $scheme = variable_get('file_default_scheme', 'public') . '://';
-  foreach ($form_state['step_information'][1]['stored_values']['plupload'] as $uploaded_file) {
+  foreach ($form_state['values']['plupload'] as $uploaded_file) {
     if ($uploaded_file['status'] == 'done') {
       $source = $uploaded_file['tmppath'];
       $destination = file_stream_wrapper_uri_normalize($scheme . $uploaded_file['name']);
@@ -210,28 +246,23 @@ function bulk_save_photos($form, &$form_state) {
   }
 }
 
-function bulk_photo_plupload($form, &$form_state) {
-  drupal_set_title(t('Upload Images'));
-  $form = array(
-    'plupload' => array(
-      '#type' => 'plupload',
-      '#required' => TRUE,
-    )
-  );
-  return $form;
-}
-
 function bulk_photo_nodes_add($form, &$form_state) {
   drupal_set_title(t('Bulk Add Info'));
   $form = array();
   $bpn_var = variable_get('bulk_photo_node_types');
-  bulk_save_photos($form, $form_state);
   $form['nodes'] = array(
     '#type' => 'fieldset',
     '#collapsed' => FALSE,
     '#tree' => TRUE,
   );
-  foreach ($form_state['values']['saved_files'] as $key => $file) {
+  foreach ($form_state['step_information'][1]['stored_values']['saved_files'] as $key => $file) {
+    if (array_key_exists('removal', $form_state) && $form_state['removal'] == $key) {
+      $form['blah'] = array(
+        '#type' => 'markup',
+        '#markup' => '<h1>blahblahblha</h1>',
+      );
+      continue;
+    }
     $vars = array(
       'style_name' => 'bulk_photo_nodes',
       'path' => $file->uri,
@@ -247,13 +278,23 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#type' => 'fieldset',
       '#collapsed' => FALSE,
       '#tree' => TRUE,
+      '#prefix' => "<div id=nodes-{$key}-wrapper>",
+      '#suffix' => "</div>",
     );
     $form['nodes'][$key]['image'] = array(
       '#type' => 'markup',
       '#markup' => $markup,
       '#tree' => TRUE,
     );
-    $form['nodes'][$key]['add_node'] = array(
+    $form['nodes'][$key]["delete_{$key}"] = array(
+      '#type' => 'submit',
+      '#value' => 'Delete',
+      '#name' => $key,
+      '#limit_validation_errors' => array(),
+      '#validate' => array('bulk_photo_nodes_add_validate'),
+      '#submit' => array('bpn_delete_node'),
+    );
+    $form['nodes'][$key]['node'] = array(
       '#type' => 'fieldset',
       '#title' => 'Edit Additional Info',
       '#collapsible' => TRUE,
@@ -264,62 +305,128 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#type' => 'value',
       '#value' => $node_type,
     );
-    $form['nodes'][$key]['add_node']['#parents'] = array(
-      'nodes', $key, 'add_node',
+    $form['nodes'][$key]['node']['#parents'] = array(
+      'nodes', $key, 'node',
     );
-
-    field_attach_form('node', $node, $form['nodes'][$key]['add_node'], $form_state);
-    $form['nodes'][$key]['body'] = $form['nodes'][$key]['add_node']['body'];
-    unset($form['nodes'][$key]['add_node'][$image_field]);
-    $form['nodes'][$key]['add_node'][$image_field]['und'][0]['#type'] = 'value';
-    $form['nodes'][$key]['add_node'][$image_field]['und'][0]['#value'] = (array) $file;
-    $form['nodes'][$key]['add_node']['title'] = array(
+    // Attach all fields found in the node form.
+    field_attach_form('node', $node, $form['nodes'][$key]['node'], $form_state);
+    // bpn_set_state($form, $key);
+    // Move around body field, create a title form item.
+    $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
+    unset($form['nodes'][$key]['node'][$image_field]);
+    $form['nodes'][$key]['node'][$image_field]['und'][0]['#type'] = 'value';
+    $form['nodes'][$key]['node'][$image_field]['und'][0]['#value'] = (array) $file;
+    $form['nodes'][$key]['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
       '#required' => TRUE,
     );
-    unset($form['nodes'][$key]['add_node']['body']);
+    unset($form['nodes'][$key]['node']['body']);
   }
-  // $form['override_fields'] = array(
-  //   '#parents' => array(
-  //     'override_fields',
-  //   ),
-  //   '#tree' => TRUE,
-  // );
-  // $form['override_fields']['title_display'] = array(
-  //   '#type' => 'markup',
-  //   '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
-  //   '#weight' => -10,
-  // );
-  // field_attach_form('node', $node, $form['override_fields'], $form_state);
-  // unset($form['override_fields'][$image_field]);
-  $form['#validate'][] = 'bpn_multistep_form_final_validate';
+  $form['override_fields'] = array(
+    '#parents' => array(
+      'override_fields',
+    ),
+    '#tree' => TRUE,
+  );
+  $form['override_fields']['title_display'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
+    '#weight' => -10,
+  );
+  field_attach_form('node', $node, $form['override_fields'], $form_state);
+  unset($form['override_fields'][$image_field]);
   return $form;
 }
 
+function bulk_photo_nodes_add_validate($form, &$form_state) {
+  // $form_state['removal'] = 
+  // form_error($form, 'This is an error');
+  // return FALSE;
+}
+
 function bpn_multistep_form_submit($form, &$form_state) {
+  // set the values for the current step.
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
 
-  $values =& $form_state['step_information'][$current_step]['stored_values'];
+  // Convenience short aliases.
+  $node_type = $form_state['step_information'][$current_step]['stored_values']['node_type'];
+  $nodes =& $form_state['step_information'][$current_step]['stored_values']['nodes'];
+  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields'];
+
   $node_count = 0;
-  foreach ($values['nodes'] as $key => $node_array) {
-    //Move body from to correct part of values
-    $values['nodes'][$key]['add_node']['body'] = $values['nodes'][$key]['body'];
-    unset($values['nodes'][$key]['body']);
+  foreach ($nodes as $key => $outer_node) {
+    $outer_node['node']['body'] = $outer_node['body'];
+    $outer_node['node']['title'] = $outer_node['title'];
+    unset($outer_node['body']);
+    unset($outer_node['title']);
     // Prepare a new node for saving
     $node = new stdClass();
-    $node->type = $values['node_type'];
+    $node->type = $node_type;
     node_object_prepare($node);
-    foreach ($node_array['add_node'] as $field_name => $field_value) {
-      // Convert values to properties of the node object.
-      $node->$field_name = $field_value;
+    // dpm($node);
+    foreach ($outer_node['node'] as $field_name => $field_values) {
+      // Iterate through fields. Convert form values to properties of the node.
+      $node->$field_name = $field_values;
+      if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
+        // This is a mult-value field. Iterate through it.
+        foreach ($field_values[LANGUAGE_NONE] as $key => $field) {
+          if (!empty($field['value'])) {
+            if (!empty($node_overrides[$field_name][LANGUAGE_NONE][$key])) {
+              $node->$field_name[LANGUAGE_NONE][$key] = $node_overrides[$field_name][LANGUAGE_NONE][$key];
+            }
+          }
+        }
+      }
+      elseif (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) == 1) {
+        // This is a single value field.
+        if (!empty($node_overrides[$field_name][LANGUAGE_NONE][0]['value'])) {
+          $node->$field_name = $node_overrides[$field_name];
+        }
+      }
     }
-    // field_attach_form_validate('node', $node, $form, $form_state); 
     node_save($node);
     if (!empty($node->nid)) {
       $node_count++;
     }
   }
   drupal_set_message("$node_count Photos saved successfully");
+}
+
+function bpn_set_state(&$form, $key) {
+  foreach (element_children($form['nodes'][$key]['node']) as $field_name) {
+    // Iterate through each field.
+    if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#required'])) {
+      $state_id = "#edit-override-fields-" . strtr($field_name, '_', '-') . "-und-0-value";
+      $state_condition = array(
+        'required' => array(
+          $state_id => array(),
+        ),
+        'optional' => array(
+          $state_id => array(),
+        ),
+      );
+      if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type'])) {
+        switch ($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type']) {
+          case 'textfield':
+            $state_condition['required'][$state_id]['filled'] = false;
+            $state_condition['optional'][$state_id]['filled'] = true;
+            break;
+
+          case 'select':
+            $state_condition['required'][$state_id]['value'] = false;
+            $state_condition['optional'][$state_id]['value'] = true;
+            break;
+        }
+      }
+      $form['nodes'][$key]['node'][$field_name]['#states'] = $state_condition;
+    }
+  }
+}
+
+function bpn_delete_node($form, &$form_state) {
+  $key = $form_state['triggering_element']['#name'];
+  $form_state['removal'] = $key;
+  $form_state['rebuild'] = TRUE;
 }
