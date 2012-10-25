@@ -348,7 +348,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
   );
   $form['override_fields']['fields'] = array(
     '#parents' => array(
-      'override_fields',
+      'override_fields', 'fields',
     ),
     '#tree' => TRUE,
   );
@@ -376,38 +376,11 @@ function bpn_multistep_form_submit($form, &$form_state) {
   // Convenience short aliases.
   $node_type = $form_state['step_information'][$current_step]['stored_values']['node_type'];
   $nodes =& $form_state['step_information'][$current_step]['stored_values']['nodes'];
-  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields'];
+  $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields']['fields'];
 
   $node_count = 0;
   foreach ($nodes as $key => $outer_node) {
-    // Prepare a new node for saving
-    $outer_node['node']['body'] = $outer_node['body'];
-    $outer_node['node']['title'] = $outer_node['title'];
-    $node = new stdClass();
-    $node->type = $node_type;
-    node_object_prepare($node);
-    foreach ($outer_node['node'] as $field_name => $field_values) {
-      // Iterate through fields. Convert form values to properties of the node.
-      $node->$field_name = $field_values;
-      if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
-        // This is a mult-value field. Iterate through it.
-        foreach ($field_values[LANGUAGE_NONE] as $key => $field) {
-          if (!empty($field['value'])) {
-            if (!empty($node_overrides[$field_name][LANGUAGE_NONE][$key])) {
-              $node->$field_name[LANGUAGE_NONE][$key] = $node_overrides[$field_name][LANGUAGE_NONE][$key];
-            }
-          }
-        }
-      }
-      elseif (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) == 1) {
-        // This is a single value field.
-        if (!empty($node_overrides[$field_name][LANGUAGE_NONE][0]['value'])) {
-          $node->$field_name = $node_overrides[$field_name];
-        }
-      }
-    }
-    node_save($node);
-    if (!empty($node->nid)) {
+    if (bpn_save_node($node_type, $outer_node, $node_overrides)) {
       $node_count++;
     }
   }
@@ -449,4 +422,51 @@ function bpn_delete_node($form, &$form_state) {
   $key = $form_state['triggering_element']['#name'];
   $form_state['removal'] = $key;
   $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Save an individual bulk_photo_node.
+ *
+ * @param string $node_type
+ *   The content type of the node.
+ *
+ * @param array $node_fields
+ *   The fields of the given node.
+ *
+ * @param array $node_overrides
+ *   Fields that will override $node_fields if they are empty.
+ *
+ * @return bool
+ *   TRUE if the node was saved successfully, FALSE otherwise.
+ */
+function bpn_save_node($node_type, $node_fields, $node_overrides) {
+  // Prepare a new node for saving
+  $node_fields['node']['body'] = $node_fields['body'];
+  $node_fields['node']['title'] = $node_fields['title'];
+  $node = new stdClass();
+  $node->type = $node_type;
+  node_object_prepare($node);
+
+  foreach ($node_fields['node'] as $field_name => $field_values) {
+    // Iterate through fields. Convert form values to properties of the node.
+    $node->$field_name = $field_values;
+    if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
+      // This is a mult-value field. Iterate through it.
+      foreach ($field_values[LANGUAGE_NONE] as $key => $field) {
+        if (!empty($field['value'])) {
+          if (!empty($node_overrides[$field_name][LANGUAGE_NONE][$key])) {
+            $node->$field_name[LANGUAGE_NONE][$key] = $node_overrides[$field_name][LANGUAGE_NONE][$key];
+          }
+        }
+      }
+    }
+    elseif (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) == 1) {
+      // This is a single value field.
+      if (!empty($node_overrides[$field_name][LANGUAGE_NONE][0]['value'])) {
+        $node->$field_name = $node_overrides[$field_name];
+      }
+    }
+  }
+  node_save($node);
+  return (!empty($node->nid)) ? TRUE : FALSE;
 }
