@@ -85,10 +85,13 @@ function bulk_photo_nodes_submit($form, &$form_state) {
 }
 
 /**
- * Returns a list of image nodes for a given content type.
+ * Returns a list of image fields for a given content type.
  *
  * @param string $node_type
  *   The name of the content type
+ *
+ * @return array
+ *   An associative array where key = machine name, value = field label
  */
 function _get_image_fields($node_type) {
   $image_fields = array(
@@ -111,6 +114,9 @@ function _get_image_fields($node_type) {
  *
  * @param string $node_type
  *   The machine name of a content_type.
+ *
+ * @return string
+ *   The machine name of the image field or FALSE if the content type isn't used
  */
 function _get_bpn_image_field($node_type) {
   $bpn_var = variable_get('bulk_photo_node_types');
@@ -122,12 +128,17 @@ function _get_bpn_image_field($node_type) {
 /**
  * Implements hook_bpn_upload().
  *
- * This is how modules define a multi-step forms to surface.
+ * Defines a multi-step form to use with bulk_photo_nodes.
  */
 function bulk_photo_nodes_bpn_upload() {
   return 'bpn_multistep_form';
 }
 
+/**
+ * Defines a list of forms to use in bpn_multistep_form.
+ *
+ * @see bpn_multistep_form()
+ */
 function _form_bpn_steps() {
   return array(
     1 => array(
@@ -139,6 +150,14 @@ function _form_bpn_steps() {
   );
 }
 
+/**
+ * Form constructor multi-step bulk photo nodes.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @see bpn_prev_submit()
+ * @ingroup forms
+ */
 function bpn_multistep_form($form, &$form_state) {
   if (empty($form_state['step'])) {
     $form_state['step'] = 1;
@@ -187,6 +206,15 @@ function bpn_multistep_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Form submission handler bpn_multistep_form().
+ *
+ * Moves the form onto the next step.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @ingroup forms
+ */
 function bpn_prev_submit($form, &$form_state) {
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
@@ -197,6 +225,15 @@ function bpn_prev_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
+/**
+ * Form submission handler bpn_multistep_form().
+ *
+ * Moves the form back a step.
+ *
+ * @see bpn_multistep_form_submit()
+ * @see bpn_next_submit()
+ * @ingroup forms
+ */
 function bpn_next_submit($form, &$form_state) {
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
@@ -212,6 +249,20 @@ function bpn_next_submit($form, &$form_state) {
   }
 }
 
+/**
+ * Page callback: Displays the first step of the bulk photo node upload form.
+ *
+ * In case the user would like to see the normal node/add form, simply supply
+ * a query string of ?override=1
+ *
+ * @param string $node_type
+ *   The content type of the node, used in case of an override.
+ *
+ * @return array
+ *   A render array for the page.
+ *
+ * @see bulk_photo_nodes_menu_alter()
+ */
 function bulk_photo_node_page($node_type) {
   $query = drupal_get_query_parameters();
   if (is_array($query) && !array_key_exists('override', $query)) {
@@ -228,6 +279,13 @@ function bulk_photo_node_page($node_type) {
   }
 }
 
+/**
+ * Form constructor for step one of bpn_multistep_form().
+ *
+ * @see bulk_photo_plupload_submit()
+ * @see _form_bpn_steps()
+ * @ingroup forms
+ */
 function bulk_photo_plupload($form, &$form_state) {
   drupal_set_title(t('Upload Images'));
   $form = array(
@@ -239,6 +297,9 @@ function bulk_photo_plupload($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Form submissions handler for bulk_photo_plupload().
+ */
 function bulk_photo_plupload_submit($form, &$form_state) {
   $saved_files = array();
   $scheme = variable_get('file_default_scheme', 'public') . '://';
@@ -257,6 +318,13 @@ function bulk_photo_plupload_submit($form, &$form_state) {
   }
 }
 
+/**
+ * Form constructor for step two of bpn_multistep_form().
+ *
+ * @see bpn_multistep_form_submit()
+ * @see _form_bpn_steps()
+ * @ingroup forms
+ */
 function bulk_photo_nodes_add($form, &$form_state) {
   drupal_set_title(t('Bulk Add Info'));
   $form = array();
@@ -383,8 +451,13 @@ function bulk_photo_nodes_add_validate($form, &$form_state) {
   // return FALSE;
 }
 
+/**
+ * Form submission handler for bpn_multistep_form().
+ *
+ * @see bulk_photo_nodes_add()
+ */
 function bpn_multistep_form_submit($form, &$form_state) {
-  // set the values for the current step.
+  // Set the values for the current step.
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
 
@@ -402,6 +475,12 @@ function bpn_multistep_form_submit($form, &$form_state) {
   drupal_set_message("$node_count Photos saved successfully");
 }
 
+/**
+ * Sets the required/optional state for form items in bulk_nodes_add().
+ *
+ * @param int $key
+ *   The key for a particular node in bulk_nodes_add().
+ */
 function bpn_set_state(&$form, $key) {
   foreach (element_children($form['nodes'][$key]['node']) as $field_name) {
     // Iterate through each field.
@@ -433,6 +512,9 @@ function bpn_set_state(&$form, $key) {
   }
 }
 
+/**
+ * Deletes an individual bulk photo node.
+ */
 function bpn_delete_node($form, &$form_state) {
   $key = $form_state['triggering_element']['#name'];
   $form_state['removal'] = $key;
@@ -440,7 +522,7 @@ function bpn_delete_node($form, &$form_state) {
 }
 
 /**
- * Save an individual bulk_photo_node.
+ * Saves an individual bulk photo node.
  *
  * @param string $node_type
  *   The content type of the node.
@@ -455,7 +537,7 @@ function bpn_delete_node($form, &$form_state) {
  *   TRUE if the node was saved successfully, FALSE otherwise.
  */
 function bpn_save_node($node_type, $node_fields, $node_overrides) {
-  // Prepare a new node for saving
+  // Prepare a new node for saving.
   $node_fields['node']['body'] = $node_fields['body'];
   $node_fields['node']['title'] = $node_fields['title'];
   $node = new stdClass();
