@@ -1,9 +1,21 @@
-.bpn-info {
-  float: left;
-  width: 67%;
-}
+#bpn-multistep-form {
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
 
-.bpn-info-bulk {
-  float: right;
-   width: 30%;
+  fieldset .fieldset-wrapper {
+    padding: 0;
+  }
+
+  .bpn-info {
+    float: left;
+    width: 67%;
+  }
+
+  .bpn-info-bulk {
+    float: right;
+    width: 30%;
+   }
 }

@@ -281,6 +281,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     $vars = array(
       'style_name' => 'bulk_photo_nodes',
       'path' => $file->uri,
+      'attributes' => array('class' => 'bpn-info-image'),
     );
     $node = new stdClass();
     // @todo this looks bad, lets use something else to get the node type.
@@ -308,6 +309,11 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#limit_validation_errors' => array(),
       '#validate' => array('bulk_photo_nodes_add_validate'),
       '#submit' => array('bpn_delete_node'),
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-image-delete',
+        ),
+      ),
     );
     $form['nodes'][$key]['node'] = array(
       '#type' => 'fieldset',
@@ -315,6 +321,11 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#tree' => TRUE,
+      '#attributes' => array(
+        'class' => array(
+          'bpn-info-additional',
+        ),
+      ),
     );
     $form['node_type'] = array(
       '#type' => 'value',
@@ -323,10 +334,11 @@ function bulk_photo_nodes_add($form, &$form_state) {
     $form['nodes'][$key]['node']['#parents'] = array(
       'nodes', $key, 'node',
     );
+
     // Attach all fields found in the node form.
     field_attach_form('node', $node, $form['nodes'][$key]['node'], $form_state);
+
     // Move around body field, create a title form item.
-    $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
     unset($form['nodes'][$key]['node'][$image_field]);
     $form['nodes'][$key]['node'][$image_field]['und'][0]['#type'] = 'value';
     $form['nodes'][$key]['node'][$image_field]['und'][0]['#value'] = (array) $file;
@@ -335,6 +347,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#title' => 'Title',
       '#required' => TRUE,
     );
+    $form['nodes'][$key]['body'] = $form['nodes'][$key]['node']['body'];
     unset($form['nodes'][$key]['node']['body']);
   }
   $form['override_fields'] = array(
