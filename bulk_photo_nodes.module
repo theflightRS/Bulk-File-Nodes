@@ -7,17 +7,6 @@
 /**
  * Implements hook_permission().
  */
-
-/**
- * Implements hook_init().
- */
-// function bulk_photo_nodes_init() {
-//   drupal_add_css(drupal_get_path('module', 'bulk_photo_nodes') . '/bulk_photo_nodes_default.css', array('group' => CSS_DEFAULT, 'basename' => 'bulk_photo_nodes_default.css'));
-// }
-
-/**
- * Implements hook_permission().
- */
 function bulk_photo_nodes_permission() {
   return array(
     'create bulk photo nodes' => array(
