@@ -411,17 +411,19 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#type' => 'value',
       '#value' => $node_type,
     );
-    $form['nodes'][$key]['node']['#parents'] = array(
-      'nodes', $key, 'node',
+    $form['nodes'][$key]['node']['right']['#parents'] = array(
+      'nodes', $key, 'node', 'right',
     );
 
     // Attach all fields found in the node form.
-    field_attach_form('node', $node, $form['nodes'][$key]['node'], $form_state);
+    field_attach_form('node', $node, $form['nodes'][$key]['right']['node'], $form_state);
 
-    // Move around body field, create a title form item.
-    unset($form['nodes'][$key]['node'][$image_field]);
-    $form['nodes'][$key]['node'][$image_field]['und'][0]['#type'] = 'value';
-    $form['nodes'][$key]['node'][$image_field]['und'][0]['#value'] = (array) $file;
+    // Manually attach file from plupload.
+    unset($form['nodes'][$key]['right']['node'][$image_field]);
+    $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#type'] = 'value';
+    $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#value'] = (array) $file;
+
+    // Manually add a title form item since it's not a field.
     $form['nodes'][$key]['right']['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
@@ -433,9 +435,11 @@ function bulk_photo_nodes_add($form, &$form_state) {
         ),
       ),
     );
-    $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['node']['body'];
-    $form['nodes'][$key]['node']['body']['#weight'] = 0;
-    unset($form['nodes'][$key]['node']['body']);
+
+    // Move body field around to proper fieldset.
+    $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['right']['node']['body'];
+    $form['nodes'][$key]['right']['node']['body']['#weight'] = 0;
+    unset($form['nodes'][$key]['right']['node']['body']);
   }
   $form['override_fields'] = array(
     '#type' => 'fieldset',
@@ -555,13 +559,13 @@ function bpn_delete_node($form, &$form_state) {
 function bpn_save_node($node_type, $node_fields, $node_overrides) {
 
   // Prepare a new node for saving.
-  $node_fields['node']['body'] = $node_fields['body'];
-  $node_fields['node']['title'] = $node_fields['title'];
+  $node_fields['right']['node']['body'] = $node_fields['right']['body'];
+  $node_fields['right']['node']['title'] = $node_fields['right']['title'];
   $node = new stdClass();
   $node->type = $node_type;
   node_object_prepare($node);
 
-  foreach ($node_fields['node'] as $field_name => $field_values) {
+  foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
     $node->$field_name = $field_values;
     if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
