@@ -266,8 +266,8 @@ function bulk_photo_nodes_add($form, &$form_state) {
       '#type' => 'value',
       '#value' => $node_type,
     );
-    $form['nodes'][$key]['node']['right']['#parents'] = array(
-      'nodes', $key, 'node', 'right',
+    $form['nodes'][$key]['right']['node']['#parents'] = array(
+      'nodes', $key, 'right', 'node',
     );
 
     // Attach all fields found in the node form.
