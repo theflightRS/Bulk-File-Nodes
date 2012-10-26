@@ -247,7 +247,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
     );
     $form['nodes'][$key]['right'] = array(
       '#type' => 'container',
-      // '#collapsed' => FALSE,
       '#attributes' => array(
         'class' => array(
           'bpn-info-node-right clearfix',
@@ -255,7 +254,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
       ),
     );
     $form['nodes'][$key]['right']['node'] = array(
-      '#type' => 'container',
+      '#type' => 'fieldset',
       '#title' => 'Edit Additional Info',
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
