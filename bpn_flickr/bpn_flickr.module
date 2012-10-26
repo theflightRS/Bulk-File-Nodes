@@ -9,20 +9,103 @@ function bpn_flickr_bpn_upload() {
 }
 
 /**
- * Implements hook_form().
+ *
  */
 function bpn_flickr_form($form, &$form_state) {
-  $flickr = bpn_flickr_get_api();
-  $user = $flickr->people_findByUsername('rb06');
-  $sets = bpn_flickr_get_sets($user);
-  dpm($sets);
+  if (empty($form_state['step'])) {
+    $form_state['step'] = 1;
+  }
 
-  $form['hi'] = array(
-    '#markup' => '<p>hi</p>'
+  $form_callback = 'bpn_flickr_form_step_' . $form_state['step'];
+  if (function_exists($form_callback)) {
+    return call_user_func($form_callback, $form, $form_state);
+  }
+}
+
+/**
+ * Step 1: Select flickr user
+ */
+function bpn_flickr_form_step_1($form, &$form_state) {
+  $form['flickr'] = array(
+    '#prefix' => '<div class="flickr">',
+    '#suffix' => '</div>'
+  );
+  $form['flickr']['header'] = array(
+    '#markup' => '<h3>Flickr</h3>',
+  );
+  $form['flickr']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#description' => t('Enter the username to request images from.')
+  );
+  $form['flickr']['next'] = array(
+    '#type' => 'submit',
+    '#value' => t('Next')
   );
   return $form;
 }
 
+/**
+ * Step 2: Pick what images to load
+ */
+function bpn_flickr_form_step_2($form, &$form_state) {
+  $form['photo_container_selector'] = array(
+    '#type' => 'fieldset',
+  );
+
+  // flickr options
+  $flickr = bpn_flickr_get_api();
+  $user = bpn_flickr_get_user($form_state['flickr_username']);
+
+  // get photosets
+  $sets = bpn_flickr_get_sets($user);
+  $photosets = array();
+  if (!empty($sets)) {
+    foreach ($sets['photoset'] as $photoset) {
+      if ($photoset['photos'] > 0) {
+        $photosets[$photoset['id']] = $photoset['title'];
+      }
+    }
+  }
+  sort($photosets);
+
+  // get popular tags
+  $tags = bpn_flickr_get_popular_tags($user);
+  $tagOptions = array();
+  foreach($tags as $tag) {
+    $tagOptions[$tag['_content']] = $tag['_content'];
+  }
+  sort($tagOptions);
+
+  $form['photo_container_selector']['photo_container_type'] = array(
+    '#type' => 'select',
+    '#options' => array(
+      t('Photos') => array(
+        'photostream' => 'Photostream'
+      ),
+      t('Sets') => $photosets,
+      t('Tags') => $tagOptions
+    ),
+    '#title' => 'View photos from:'
+  );
+  return $form;
+}
+
+/**
+ * Flickr submit handler
+ */
+function bpn_flickr_form_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+  if (isset($form_state['values']['username']) && !empty($form_state['values']['username'])) {
+    $form_state['flickr_username'] = $form_state['values']['username'];
+    $form_state['step'] = 2;
+  }
+}
+
+/**
+ * Get the Flickr API object for use in API calls
+ * @return object The PHP Flickr object
+ */
 function bpn_flickr_get_api() {
   $flickr = &drupal_static(__FUNCTION__);
   if (!isset($flickr)) {
@@ -32,10 +115,26 @@ function bpn_flickr_get_api() {
 }
 
 /**
+ * Get the popular tags for a user
+ * @param  array $user
+ */
+function bpn_flickr_get_popular_tags($user) {
+  $flickr = bpn_flickr_get_api();
+  return $flickr->tags_getListUserPopular($user['nsid'], 25);
+}
+
+/**
  * Get the photosets for a user
  */
 function bpn_flickr_get_sets($user) {
   $flickr = bpn_flickr_get_api();
-
   return $flickr->photosets_getList($user['nsid']);
+}
+
+/**
+ * Wrapper for PHPFlickr::people_findByUsername
+ */
+function bpn_flickr_get_user($username) {
+  $flickr = bpn_flickr_get_api();
+  return $flickr->people_findByUsername($username);
 }
