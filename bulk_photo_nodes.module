@@ -55,11 +55,9 @@ function bulk_photo_nodes_form_node_type_form_alter(&$form, &$form_state, $form_
 function bulk_photo_nodes_submit($form, &$form_state) {
   $image_field = $form_state['values']['bulk_photo_nodes']['image_field'];
   $node_type = $form['#node_type']->type;
-
   if (!empty($image_field)) {
     // If the user has selected a value.
     $bpn_var = variable_get('bulk_photo_node_types');
-
     if ($image_field == 'none') {
       if (is_array($bpn_var) && array_key_exists($node_type, $bpn_var)) {
         unset($bpn_var[$node_type]);
@@ -86,7 +84,6 @@ function _get_image_fields($node_type) {
   $image_fields = array(
     'none' => '- None -',
   );
-
   $fields_info = field_info_instances('node', $node_type);
   foreach ($fields_info as $field_name => $field_value) {
     $field_info = field_info_field($field_name);
@@ -129,12 +126,11 @@ function _get_bpn_image_field($node_type) {
  * @see bulk_photo_nodes_menu_alter()
  */
 function bulk_photo_node_page($node_type) {
-  $query = drupal_get_query_parameters();
-  if (is_array($query) && !array_key_exists('override', $query)) {
+  if (is_bpn_add_page()) {
     $content = array();
     $forms = module_invoke_all('bpn_upload');
     foreach ($forms as $form) {
-      $content[] = drupal_get_form($form);
+      $content['forms'][] = drupal_get_form($form);
     }
     return $content;
   }
@@ -142,4 +138,46 @@ function bulk_photo_node_page($node_type) {
     $form = node_add($node_type);
     return $form;
   }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function bulk_photo_nodes_page_alter(&$page) {
+  $chosen_form = NULL;
+  if (is_bpn_add_page()) {
+    foreach ($page['content']['system_main']['forms'] as $key => $form) {
+      if (array_key_exists('#bpn_chosen_form', $form)) {
+        $chosen_form = $key;
+      }
+      // @todo: This is ugly with two foreach loops.
+      foreach ($page['content']['system_main']['forms'] as $key => $form) {
+        if (isset($chosen_form) && $key != $chosen_form) {
+          unset($page['content']['system_main']['forms'][$key]);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Determines if the current node add form is used by bulk photo nodes.
+ *
+ * @return bool
+ *   TRUE if the current node add form  is used by bpn, FALSE otherwise.
+ */
+function is_bpn_add_page() {
+  $query = drupal_get_query_parameters();
+  if (!is_array($query) || !array_key_exists('override', $query)) {
+    $bpn_var = variable_get('bulk_photo_node_types');
+    if (!empty($bpn_var)) {
+      foreach ($bpn_var as $node_type => $image_field) {
+        $node_type = strtr($node_type, '_', '-');
+        if (arg(0) == 'node' && arg(1) == 'add' && arg(2) == $node_type) {
+          return TRUE;
+        }
+      }
+    }
+  }
+  return FALSE;
 }

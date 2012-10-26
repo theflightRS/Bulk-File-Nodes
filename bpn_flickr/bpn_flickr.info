@@ -1,0 +1,4 @@
+name = Bulk Photo Nodes Flickr
+core = 7.x
+dependencies[] = flickrapi
+dependencies[] = bulk_photo_nodes
