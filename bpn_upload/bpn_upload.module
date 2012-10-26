@@ -41,7 +41,7 @@ function bpn_multistep_form($form, &$form_state) {
   // Generate form from next form builder defined in _form_bpn_steps.
   $form = $form_state['step_information'][$step]['form']($form, $form_state);
   if ($step > 1) {
-    $form['prev'] = array(
+    $form['override_fields']['prev'] = array(
       '#type' => 'submit',
       '#value' => t('Previous'),
       '#name' => 'prev',
@@ -65,16 +65,16 @@ function bpn_multistep_form($form, &$form_state) {
     }
   }
   else {
-    $form['finish'] = array(
+    $form['override_fields']['finish'] = array(
       '#type' => 'submit',
       '#validate' => array(),
       '#value' => t('Finish'),
     );
     if (function_exists($form_state['step_information'][$step]['form'] . '_submit')) {
-      array_unshift($form['finish']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
+      array_unshift($form['override_fields']['finish']['#submit'], $form_state['step_information'][$step]['form'] . '_submit');
     }
     if (function_exists($form_state['step_information'][$step]['form'] . '_validate')) {
-      array_unshift($form['finish']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
+      array_unshift($form['override_fields']['finish']['#validate'], $form_state['step_information'][$step]['form'] . '_validate');
     }
   }
   return $form;
