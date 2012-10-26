@@ -172,6 +172,10 @@ function bulk_photo_plupload_submit($form, &$form_state) {
 function bulk_photo_nodes_add($form, &$form_state) {
   drupal_set_title(t('Bulk Add Info'));
   $form = array();
+  $form['#bpn_chosen_form'] = array(
+    '#type' => 'value',
+    '#value' => TRUE,
+  );
   $form['#attached']['css'] = array(
     drupal_get_path('module', 'bulk_photo_nodes') . '/bulk_photo_nodes_default.css',
   );

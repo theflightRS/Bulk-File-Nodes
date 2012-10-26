@@ -49,6 +49,10 @@ function bpn_flickr_form_step_1($form, &$form_state) {
  * Step 2: Pick what images to load
  */
 function bpn_flickr_form_step_2($form, &$form_state) {
+  $form['#bpn_chosen_form'] = array(
+    '#type' => 'value',
+    '#value' => TRUE,
+  );
   $form['photo_container_selector'] = array(
     '#type' => 'fieldset',
   );
