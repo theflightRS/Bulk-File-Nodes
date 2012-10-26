@@ -21,10 +21,14 @@
   .bpn-right {
     float: right;
     width: 30%;
-    > div {
+    border: 1px solid #ccc;
+    > div, > h2, > p {
       position: relative;
-      border: 1px solid #ccc;
-      padding: 1em;
+      margin: 10px 0;
+      padding: 0 10px;
+    }
+    input.form-submit {
+      margin: 10px;
     }
   }
 
