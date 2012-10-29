@@ -107,6 +107,23 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     ),
     '#title' => 'View photos from:'
   );
+
+  $form['photo_container_photos']['photostream'] = array(
+    '#type' => 'container',
+  );
+
+  // get photos from photostream.
+  $photos = bpn_flickr_get_photos($user);
+  if (!empty($photos)) {
+    foreach ($photos['photos']['photo'] as $key => $photo) {
+      $id = $photo['id'];
+      $form['photo_container_photos']['photostream'][$id] = array(
+        '#type' => 'checkbox',
+        '#prefix' => theme('image', array('path' => $photo['url_s'])),
+        '#title' => $photo['title'],
+      );
+    }
+  }
   return $form;
 }
 
@@ -156,4 +173,19 @@ function bpn_flickr_get_sets($user) {
 function bpn_flickr_get_user($username) {
   $flickr = bpn_flickr_get_api();
   return $flickr->people_findByUsername($username);
+}
+
+/**
+ * Get photos from a user's photostream.
+ */
+function bpn_flickr_get_photos($user) {
+  $flickr = bpn_flickr_get_api();
+  $options = array(
+    'user_id' => $user['nsid'],
+    'safe_search' => NULL,
+    'extras' => 'url_s',
+    'per_page' => 30,
+  );
+  extract($options);
+  return $flickr->people_getPublicPhotos($user_id, $safe_search, $extras, $per_page);
 }
