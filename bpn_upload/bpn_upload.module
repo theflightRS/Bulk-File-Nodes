@@ -191,9 +191,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
     ),
   );
   foreach ($form_state['step_information'][1]['stored_values']['saved_files'] as $key => $file) {
-    if (array_key_exists('removal', $form_state) && $form_state['removal'] == $key) {
-      continue;
-    }
     $vars = array(
       'style_name' => 'bulk_photo_nodes',
       'path' => $file->uri,
@@ -350,6 +347,8 @@ function bpn_multistep_form_submit($form, &$form_state) {
       $node_count++;
     }
   }
+  $image_style = image_style_load('bulk_photo_nodes');
+  image_style_flush($image_style);
   drupal_set_message("$node_count Photos saved successfully");
 }
 
@@ -395,6 +394,9 @@ function bpn_set_state(&$form, $key) {
  */
 function bpn_delete_node($form, &$form_state) {
   $key = $form_state['triggering_element']['#name'];
+  file_delete($form_state['step_information'][1]['stored_values']['saved_files'][$key]);
+  unset($form_state['step_information'][1]['stored_values']['saved_files'][$key]);
+  unset($form_state['step_information'][1]['stored_values']['plupload'][$key]);
   $form_state['removal'] = $key;
   $form_state['rebuild'] = TRUE;
 }
