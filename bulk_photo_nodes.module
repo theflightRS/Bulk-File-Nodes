@@ -67,6 +67,7 @@ function bulk_photo_nodes_submit($form, &$form_state) {
       $bpn_var[$node_type] = $image_field;
     }
     variable_set('bulk_photo_node_types', $bpn_var);
+    // menu_rebuild();
     drupal_set_message("Bulk photo node settings saved.");
   }
 }
@@ -104,7 +105,7 @@ function _get_image_fields($node_type) {
  * @return string
  *   The machine name of the image field or FALSE if the content type isn't used
  */
-function _get_bpn_image_field($node_type) {
+function get_bpn_image_field($node_type) {
   $bpn_var = variable_get('bulk_photo_node_types');
   if (is_array($bpn_var)) {
     return (array_key_exists($node_type, $bpn_var)) ? $bpn_var[$node_type] : 'none';

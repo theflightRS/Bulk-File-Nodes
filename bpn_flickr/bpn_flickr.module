@@ -23,7 +23,9 @@ function bpn_flickr_form($form, &$form_state) {
 }
 
 /**
- * Step 1: Select flickr user
+ * Form constrcutor for Step 1: Select flickr user.
+ *
+ * @see bpn_flickr_form_step_1_validate().
  */
 function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr'] = array(
@@ -42,7 +44,20 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('Next')
   );
+  $form['#validate'] = array('bpn_flickr_form_step_1_validate');
   return $form;
+}
+
+/**
+ * Form validation handler for bpn_flickr_form_step_1().
+ */
+function bpn_flickr_form_step_1_validate($form, &$form_state) {
+  $flickr = bpn_flickr_get_api();
+  dpm($form_state);
+  $user = bpn_flickr_get_user($form_state['values']['username']);
+  if (empty($user)) {
+    form_set_error('username', $flickr->getErrorMsg());
+  }
 }
 
 /**

@@ -138,6 +138,12 @@ function bulk_photo_plupload($form, &$form_state) {
       '#required' => TRUE,
     ),
   );
+  // @todo this looks bad, lets use something else to get the node type.
+  $node_type = strtr(arg(2), '-', '_');
+  $form['node_type'] = array(
+    '#type' => 'value',
+    '#value' => $node_type,
+  );
   return $form;
 }
 
@@ -145,12 +151,18 @@ function bulk_photo_plupload($form, &$form_state) {
  * Form submissions handler for bulk_photo_plupload().
  */
 function bulk_photo_plupload_submit($form, &$form_state) {
+  $node_type = $form_state['values']['node_type']; 
+  $field_name = get_bpn_image_field($node_type);
+  $field_info = field_info_field($field_name);
+  $instance_info = field_info_instance('node', $field_name, $node_type);
+  $scheme = $field_info['settings']['uri_scheme'] . '://';
+  $directory = $instance_info['settings']['file_directory'] . '/';
+  dpm($instance_info);
   $saved_files = array();
-  $scheme = variable_get('file_default_scheme', 'public') . '://';
   foreach ($form_state['values']['plupload'] as $uploaded_file) {
     if ($uploaded_file['status'] == 'done') {
       $source = $uploaded_file['tmppath'];
-      $destination = file_stream_wrapper_uri_normalize($scheme . $uploaded_file['name']);
+      $destination = file_stream_wrapper_uri_normalize($scheme . $directory . $uploaded_file['name']);
       $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
       $file = plupload_file_uri_to_object($destination);
       file_save($file);
@@ -179,7 +191,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
   $form['#attached']['css'] = array(
     drupal_get_path('module', 'bulk_photo_nodes') . '/bulk_photo_nodes_default.css',
   );
-  $bpn_var = variable_get('bulk_photo_node_types');
   $form['nodes'] = array(
     '#type' => 'fieldset',
     '#collapsed' => FALSE,
@@ -197,11 +208,9 @@ function bulk_photo_nodes_add($form, &$form_state) {
       'attributes' => array('class' => 'bpn-info-node-image'),
     );
     $node = new stdClass();
-    // @todo this looks bad, lets use something else to get the node type.
-    $node_type = strtr(arg(2), '-', '_');
+    $node_type = $form_state['step_information'][1]['stored_values']['node_type'];
     $node->type = $node_type;
     node_object_prepare($node);
-    $image_field = $bpn_var[$node_type];
     $markup = theme('image_style', $vars);
     $form['nodes'][$key] = array(
       '#type' => 'fieldset',
@@ -262,10 +271,6 @@ function bulk_photo_nodes_add($form, &$form_state) {
         ),
       ),
     );
-    $form['node_type'] = array(
-      '#type' => 'value',
-      '#value' => $node_type,
-    );
     $form['nodes'][$key]['right']['node']['#parents'] = array(
       'nodes', $key, 'right', 'node',
     );
@@ -274,6 +279,7 @@ function bulk_photo_nodes_add($form, &$form_state) {
     field_attach_form('node', $node, $form['nodes'][$key]['right']['node'], $form_state);
 
     // Manually attach file from plupload.
+    $image_field = get_bpn_image_field($node_type);
     unset($form['nodes'][$key]['right']['node'][$image_field]);
     $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#type'] = 'value';
     $form['nodes'][$key]['right']['node'][$image_field]['und'][0]['#value'] = (array) $file;
@@ -337,7 +343,7 @@ function bpn_multistep_form_submit($form, &$form_state) {
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
 
   // Convenience short aliases.
-  $node_type = $form_state['step_information'][$current_step]['stored_values']['node_type'];
+  $node_type = $form_state['step_information'][1]['stored_values']['node_type'];
   $nodes =& $form_state['step_information'][$current_step]['stored_values']['nodes'];
   $node_overrides =& $form_state['step_information'][$current_step]['stored_values']['override_fields']['fields'];
 
