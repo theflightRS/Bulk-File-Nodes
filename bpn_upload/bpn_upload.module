@@ -157,7 +157,6 @@ function bulk_photo_plupload_submit($form, &$form_state) {
   $instance_info = field_info_instance('node', $field_name, $node_type);
   $scheme = $field_info['settings']['uri_scheme'] . '://';
   $directory = $instance_info['settings']['file_directory'] . '/';
-  dpm($instance_info);
   $saved_files = array();
   foreach ($form_state['values']['plupload'] as $uploaded_file) {
     if ($uploaded_file['status'] == 'done') {
