@@ -4,7 +4,7 @@
  *
  * Defines a multi-step form to use with bulk_photo_nodes.
  */
-function bpn_flickr_bpn_upload() {
+function bpn_flickr_bulk_photo_nodes_method() {
   return 'bpn_flickr_form';
 }
 
@@ -12,12 +12,7 @@ function bpn_flickr_form($form, &$form_state) {
   if (empty($form_state['step'])) {
     $form_state['step'] = 1;
   }
-  // @todo this looks bad, lets use something else to get the node type.
-  $node_type = strtr(arg(2), '-', '_');
-  $form['node_type'] = array(
-    '#type' => 'value',
-    '#value' => $node_type,
-  );
+  $form_state['node_type'] = bulk_photo_nodes_form_get_type();
   $form_callback = 'bpn_flickr_form_step_' . $form_state['step'];
   if (function_exists($form_callback)) {
     return call_user_func($form_callback, $form, $form_state);
@@ -74,7 +69,10 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     '#tree' => TRUE,
     '#weight' => -2,
   );
-
+  $form['node_type'] = array(
+    '#type' => 'value',
+    '#value' => bulk_photo_nodes_form_get_type(),
+  );
   // flickr options
   $flickr = bpn_flickr_get_api();
   $user = bpn_flickr_get_user($form_state['flickr_username']);
@@ -185,24 +183,32 @@ function bpn_flickr_form_step_2($form, &$form_state) {
  * Form submission handler for bpn_flickr_form_step_2().
  */
 function bpn_flickr_form_step_2_submit($form, &$form_state) {
-  $node_type = $form_state['values']['node_type']; 
-  $field_name = get_bpn_image_field($node_type);
-  $field_info = field_info_field($field_name);
-  $instance_info = field_info_instance('node', $field_name, $node_type);
-  $scheme = $field_info['settings']['uri_scheme'] . '://';
-  $directory = $instance_info['settings']['file_directory'] . '/';
+  $node_type = $form_state['values']['node_type'];
+  $options = bulk_photo_nodes_get_file_info($node_type);
+  extract($options);
   $saved_files = array();
   foreach ($form_state['checked_photos'] as $key => $flickr_id) {
-      $source = $uploaded_file['tmppath'];
-      $destination = file_stream_wrapper_uri_normalize($scheme . $directory . $uploaded_file['name']);
-      $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
-      $file = plupload_file_uri_to_object($destination);
-      file_save($file);
-      $form_state['values']['saved_files'][] = $file;
-      form_set_error('plupload', "Upload of {$uploaded_file['name']} failed");
+    $flickr_sizes = bpn_flickr_get_photo($flickr_id);
+    $largest_size = count($flickr_sizes) - 1;
+    // Get URL to download  image from.
+    $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
+    $filename = substr($parsed_url['path'], strrpos($parsed_url['path'], '/') + 1);
+    // Request and save the image.
+    $downloaded_file = drupal_http_request($flickr_sizes[$largest_size]['source']);
+    $destination_uri = file_stream_wrapper_uri_normalize('public://' . $filename);
+    $file_uri = file_unmanaged_save_data($downloaded_file->data, $destination_uri);
+    // Convert the saved file to a file object.
+    $file_object = bpn_flickr_file_uri_to_object($file_uri);
+    file_save($file_object);
+    $form_state['saved_files'][] = $file_object;
   }
+  $form_state['rebuild'] = TRUE;
+  $form_state['step'] = 3;
 }
 
+function bpn_flickr_form_step_3($form, &$form_state) {
+  return bulk_photo_nodes_add_form($form, $form_state);
+}
 /**
  * Flickr submit handler
  */
@@ -275,6 +281,14 @@ function bpn_flickr_get_photos($user, $page = 1) {
   return $flickr->people_getPublicPhotos($user_id, $safe_search, $extras, $per_page, $page);
 }
 
+/**
+ * Get information from a photo on flickr.
+ */
+function bpn_flickr_get_photo($photo_id) {
+  $flickr = bpn_flickr_get_api();
+  return $flickr->photos_getSizes($photo_id);
+}
+
 
 function bpn_flickr_photos_state($form, &$form_state) {
   if (empty($form_state['checked_photos'])) {
@@ -301,4 +315,31 @@ function bpn_flickr_update_photos($form, &$form_state) {
   $form_state['photo_set'] = $form_state['values']['photo_container_selector']['photo_container_type'];
   $form_state['flickr_page'] = 1;
   $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * returns a file object which can be passed to file_save().
+ *
+ * @param $uri
+ *  a string containing the uri, path, or filename.
+ * @return
+ *  a file object, or false on error.
+ *
+ * @todo replace with calls to this function with file_uri_to_object() when
+ * http://drupal.org/node/685818 is fixed in core.
+ */
+function bpn_flickr_file_uri_to_object($uri) {
+  global $user;
+  $uri = file_stream_wrapper_uri_normalize($uri);
+  $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+  $file = new stdclass;
+  $file->uid = $user->uid;
+  $file->filename = basename($uri);
+  $file->uri = $uri;
+  $file->filemime = file_get_mimetype($uri);
+  // this is gagged because some uris will not support it.
+  $file->filesize = @filesize($uri);
+  $file->timestamp = REQUEST_TIME;
+  $file->status = 1;
+  return $file;
 }
