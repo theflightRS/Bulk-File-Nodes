@@ -50,7 +50,7 @@ function bulk_photo_nodes_form_node_type_form_alter(&$form, &$form_state, $form_
 }
 
 /**
- * Submit callback for bulk_photo_nodes_form_node_type_form_alter.
+ * Form submission handler for bulk_photo_nodes_form_node_type_form_alter.
  */
 function bulk_photo_nodes_submit($form, &$form_state) {
   $image_field = $form_state['values']['bulk_photo_nodes']['image_field'];
@@ -127,7 +127,7 @@ function bulk_photo_nodes_get_image_field($node_type) {
  * @see bulk_photo_nodes_menu_alter()
  */
 function bulk_photo_node_page($node_type) {
-  if (is_bpn_add_page()) {
+  if (bulk_photo_nodes_is_bpn_add_page()) {
     $content = array();
     $forms = module_invoke_all('bulk_photo_nodes_method');
     foreach ($forms as $form) {
@@ -146,7 +146,7 @@ function bulk_photo_node_page($node_type) {
  */
 function bulk_photo_nodes_page_alter(&$page) {
   $chosen_form = NULL;
-  if (is_bpn_add_page() && user_access('create bulk photo nodes')) {
+  if (bulk_photo_nodes_is_bpn_add_page() && user_access('create bulk photo nodes')) {
     foreach ($page['content']['system_main']['forms'] as $key => $form) {
       if (array_key_exists('#bpn_chosen_form', $form)) {
         $chosen_form = $key;
@@ -167,7 +167,7 @@ function bulk_photo_nodes_page_alter(&$page) {
  * @return bool
  *   TRUE if the current node add form  is used by bpn, FALSE otherwise.
  */
-function is_bpn_add_page() {
+function bulk_photo_nodes_is_bpn_add_page() {
   $query = drupal_get_query_parameters();
   if (!is_array($query) || !array_key_exists('override', $query)) {
     $bpn_var = variable_get('bulk_photo_node_types');
@@ -184,10 +184,8 @@ function is_bpn_add_page() {
 }
 
 /**
- * Form constructor for step two of bpn_multistep_form().
+ * Form constructor for final step of bpn_multistep_form().
  *
- * @see bpn_multistep_form_submit()
- * @see _form_bpn_steps()
  * @ingroup forms
  */
 function bulk_photo_nodes_add_form($form, &$form_state) {
@@ -220,7 +218,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     );
     $node = new stdClass();
     $node_type = bulk_photo_nodes_form_get_type();
-    $node_type = 'article';
     $node->type = $node_type;
     node_object_prepare($node);
     $markup = theme('image_style', $vars);
@@ -283,6 +280,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
           'bpn-info-node-additional',
         ),
       ),
+      '#weight' => 10,
     );
     // Manually add a title form item since it's not a field.
     $form['nodes'][$key]['right']['title'] = array(
@@ -311,6 +309,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['right']['node']['body'];
     $form['nodes'][$key]['right']['node']['body']['#weight'] = 0;
     unset($form['nodes'][$key]['right']['node']['body']);
+    // bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node']);
   }
   $form['override_fields'] = array(
     '#type' => 'container',
@@ -338,15 +337,13 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   );
   // $form['override_fields']['finish']['#validate'] = array('bulk_photo_nodes_add_form_validate');
   $form['override_fields']['finish']['#submit'][] = 'bulk_photo_nodes_add_form_submit';
-  bulk_photo_nodes_recursive_set_optional($form['override_fields']['fields'], $form_state);
-  bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
+  // bulk_photo_nodes_recursive_set_optional($form['override_fields']['fields'], $form_state);
+  // bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
   return $form;
 }
 
 /**
- * Form submission handler for bpn_multistep_form().
- *
- * @see bulk_photo_nodes_add_form()
+ * Form submission handler for bulk_photo_nodes_add_form().
  */
 function bulk_photo_nodes_add_form_submit($form, &$form_state) {
   // Convenience short aliases.
@@ -437,47 +434,10 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
 }
 
 /**
- * Sets the required/optional state for form items in bulk_nodes_add_form().
- *
- * @param int $key
- *   The key for a particular node in bulk_nodes_add_form().
- */
-function bulk_photo_nodes_add_form_set_state(&$form, $key) {
-  foreach (element_children($form['nodes'][$key]['node']) as $field_name) {
-    // Iterate through each field.
-    if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#required'])) {
-      $state_id = "#edit-override-fields-" . strtr($field_name, '_', '-') . "-und-0-value";
-      $state_condition = array(
-        'required' => array(
-          $state_id => array(),
-        ),
-        'optional' => array(
-          $state_id => array(),
-        ),
-      );
-      if (!empty($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type'])) {
-        switch ($form['nodes'][$key]['node'][$field_name][LANGUAGE_NONE]['#type']) {
-          case 'textfield':
-            $state_condition['required'][$state_id]['filled'] = false;
-            $state_condition['optional'][$state_id]['filled'] = true;
-            break;
-
-          case 'select':
-            $state_condition['required'][$state_id]['value'] = false;
-            $state_condition['optional'][$state_id]['value'] = true;
-            break;
-        }
-      }
-      $form['nodes'][$key]['node'][$field_name]['#states'] = $state_condition;
-    }
-  }
-}
-
-/**
  * Gets the name of the current content type and returns it as a form element.
  *
  * @return array
- *  A #value comprised of the current content type. 
+ *  A #value comprised of the current content type.
  *
  * @todo:
  * Figure out why this doesn't work with AJAX!!!
@@ -488,6 +448,15 @@ function bulk_photo_nodes_form_get_type() {
   return $node_type;
 }
 
+/**
+ * Gets configuration options of the image field used by bulk_photo_nodes.
+ *
+ * @param string $node_type
+ *   The machine of the content type used by bulk_photo_nodes.
+ *
+ * @return array
+ *   Various configuration options for the image field used.
+ */
 function bulk_photo_nodes_get_file_info($node_type) {
   $options = array();
   $options['field_name'] = bulk_photo_nodes_get_image_field($node_type);
@@ -498,6 +467,12 @@ function bulk_photo_nodes_get_file_info($node_type) {
   return $options;
 }
 
+/**
+ * Adds an #ajax property recursively to all elements of a form.
+ *
+ * @param array $element
+ *   The first element to recursively apply #ajax to.
+ */
 function bulk_photo_nodes_recursive_ajax(&$element) {
   if (element_children($element)) {
     foreach (element_children($element) as $child) {
@@ -516,6 +491,12 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
   }
 }
 
+/**
+ * Sets the #required to FALSE recurvisely to all elements of a form.
+ *
+ * @param array $element
+ *   The first element to recursively set #required = FALSE.
+ */
 function bulk_photo_nodes_recursive_set_optional(&$element) {
   if (element_children($element)) {
     foreach (element_children($element) as $child) {
@@ -530,6 +511,12 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
   }
 }
 
+/**
+ * Sets the #required to TRUE recurvisely to all elements of a form.
+ *
+ * @param array $element
+ *   The first element to recursively set #required = TRUE.
+ */
 function bulk_photo_nodes_recursive_set_required(&$element) {
   if (element_children($element)) {
     foreach (element_children($element) as $child) {
