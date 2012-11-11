@@ -30,7 +30,7 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#suffix' => '</div>',
   );
   $form['flickr']['header'] = array(
-    '#markup' => '<h3>' . t('Upload Images from flickr') . '</h3>',
+    '#markup' => '<h3>' . t('Upload Images From flickr') . '</h3>',
   );
   $form['flickr']['username'] = array(
     '#type' => 'textfield',
