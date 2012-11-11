@@ -30,7 +30,7 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#suffix' => '</div>',
   );
   $form['flickr']['header'] = array(
-    '#markup' => '<h3>Flickr</h3>',
+    '#markup' => '<h3>' . t('Upload Images from flickr') . '</h3>',
   );
   $form['flickr']['username'] = array(
     '#type' => 'textfield',
@@ -40,6 +40,9 @@ function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr']['next'] = array(
     '#type' => 'submit',
     '#value' => t('Next'),
+  );
+  $form['flickr']['footer'] = array(
+    '#markup' => '<div class="bpn-or">' . t('OR') . '</div>',
   );
   $form['#validate'] = array('bpn_flickr_form_step_1_validate');
   return $form;

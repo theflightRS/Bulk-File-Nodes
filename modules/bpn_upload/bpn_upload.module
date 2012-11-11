@@ -35,6 +35,9 @@ function bpn_upload_form($form, &$form_state) {
  */
 function bpn_upload_form_step_1($form, &$form_state) {
   $form = array(
+    'header' => array (
+      '#markup' => '<h3>' . t('Upload Images from flickr') . '</h3>',
+    ),
     'plupload' => array(
       '#type' => 'plupload',
       '#required' => TRUE,
