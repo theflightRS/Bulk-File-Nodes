@@ -163,8 +163,9 @@ function bpn_flickr_form_step_2($form, &$form_state) {
       $form['photo_container_photos']['photostream'][$id] = array(
         '#type' => 'checkbox',
         '#default_value' => $default_value,
-        '#prefix' => theme('image', array('path' => $photo['url_s'])),
+        '#prefix' => '<div class="bpn-flickr-thumbnail">' . theme('image', array('path' => $photo['url_s'])),
         '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
+        '#suffix' => '</div>',
       );
     }
   }
