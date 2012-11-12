@@ -99,12 +99,13 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     ),
     '#title' => 'View photos from:',
   );
-  $num_photos_checked = '';
-  if (!empty($form_state['num_photos_checked'])) {
-    $num_photos_checked = "<p>You have selected $form_state[num_photos_checked] photos</p>";
-  }
   $form['photo_container_selector']['stats'] = array(
-    '#markup' => $num_photos_checked,
+    '#markup' => '<p>' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . intval($form_state['num_photos_checked']) . '</span></p>',
+    '#attached' => array(
+      'js' => array(
+        drupal_get_path('module', 'bpn_flickr') . '/js/bpn_flickr.js',
+      ),
+    ),
   );
   $form['photo_container_selector']['update'] = array(
     '#type' => 'submit',
