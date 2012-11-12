@@ -27,7 +27,7 @@ function bpn_flickr_form($form, &$form_state) {
 function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr'] = array(
     '#prefix' => '<div class="bpn-flickr">',
-    '#suffix' => '</div>' . '<div class="bpn-or">' . t('OR') . '</div>',
+    '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
   );
   $form['flickr']['header'] = array(
     '#markup' => '<h3>' . t('Upload Images From flickr') . '</h3>',
@@ -43,6 +43,8 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#suffix' => '<div class="description">' . t('Add description(s) on next page') . '</div>',
   );
   $form['#validate'] = array('bpn_flickr_form_step_1_validate');
+  $form['#submit'] = array('bpn_flickr_form_step_1_submit');
+
   return $form;
 }
 
@@ -55,6 +57,19 @@ function bpn_flickr_form_step_1_validate($form, &$form_state) {
   if (empty($user)) {
     form_set_error('username', $flickr->getErrorMsg());
   }
+}
+
+/**
+ * Form submission handler for bpn_flickr_form_step_2().
+ */
+function bpn_flickr_form_step_1_submit($form, &$form_state) {
+  
+  $form_state['rebuild'] = TRUE;
+  if (isset($form_state['values']['username']) && !empty($form_state['values']['username'])) {
+    $form_state['flickr_username'] = $form_state['values']['username'];
+    $form_state['step'] = 2;
+  }
+
 }
 
 /**
@@ -100,8 +115,11 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     ),
     '#title' => 'View photos from:',
   );
+  
+  $count = (isset($form_state['num_photos_checked'])) ? intval($form_state['num_photos_checked']) : 0;
+  
   $form['photo_container_selector']['stats'] = array(
-    '#markup' => '<p>' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . intval($form_state['num_photos_checked']) . '</span></p>',
+    '#markup' => '<p>' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . $count . '</span></p>',
     '#attached' => array(
       'js' => array(
         drupal_get_path('module', 'bpn_flickr') . '/js/bpn_flickr.js',
@@ -165,8 +183,9 @@ function bpn_flickr_form_step_2($form, &$form_state) {
       $form['photo_container_photos']['photostream'][$id] = array(
         '#type' => 'checkbox',
         '#default_value' => $default_value,
-        '#prefix' => theme('image', array('path' => $photo['url_s'])),
+        '#prefix' => '<div class="bpn-flickr-thumbnail">' . theme('image', array('path' => $photo['url_s'])),
         '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
+        '#suffix' => '</div>',
       );
     }
   }
@@ -210,16 +229,6 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
 
 function bpn_flickr_form_step_3($form, &$form_state) {
   return bulk_photo_nodes_add_form($form, $form_state);
-}
-/**
- * Flickr submit handler
- */
-function bpn_flickr_form_submit($form, &$form_state) {
-  $form_state['rebuild'] = TRUE;
-  if (isset($form_state['values']['username']) && !empty($form_state['values']['username'])) {
-    $form_state['flickr_username'] = $form_state['values']['username'];
-    $form_state['step'] = 2;
-  }
 }
 
 /**
