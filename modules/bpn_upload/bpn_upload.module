@@ -13,12 +13,12 @@ function bpn_upload_bulk_photo_nodes_method() {
  *
  * @ingroup forms
  */
-function bpn_upload_form($form, &$form_state) {
+function bpn_upload_form($form, &$form_state, $node_type) {
   if (empty($form_state['step'])) {
     $form_state['step'] = 1;
   }
   if (empty($form_state['node_type'])) {
-    $form_state['node_type'] = bulk_photo_nodes_form_get_type();
+    $form_state['node_type'] = $node_type;
   }
   $form_callback = 'bpn_upload_form_step_' . $form_state['step'];
   if (function_exists($form_callback)) {
