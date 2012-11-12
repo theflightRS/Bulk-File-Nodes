@@ -43,8 +43,6 @@ function bpn_flickr_private_form($form, &$form_state) {
 
 /**
  * Form constructor for Step 1: Select flickr user.
- *
- * @see bpn_flickr_private_form_step_1_validate().
  */
 function bpn_flickr_private_form_step_1($form, &$form_state) {
   // Check if the flickrapi module is authenticated.
@@ -134,18 +132,7 @@ function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
  * @return [type] [description]
  */
 function bpn_flickr_private_oauth_authenticate() {
-  dpm('bpn_flickr_private_oauth_authenticate');
-  module_load_include('module', 'oauth_common');
-  $consumer = DrupalOAuthConsumer::load(variable_get('flickrapi_api_key', ''), FALSE);
-  $request_token = DrupalOAuthToken::loadByKey($_GET['oauth_token'], $consumer, OAUTH_COMMON_TOKEN_TYPE_REQUEST);
-
-  $client = new DrupalOAuthClient($consumer, $request_token);
-  $access_token = $client->getAccessToken('http://www.flickr.com/services/oauth/access_token', array(
-    'verifier' => $_GET['oauth_verifier'])
-  );
-
-  $request_token->delete();
-
+  $access_token = bpn_flickr_private_get_token();
   drupal_set_message(t('Succesfully verified'));
   drupal_goto($_SESSION['bulk_photo_node_url'], array('query' => array('bpn_flickr_private' => 1)));
 }
@@ -154,6 +141,7 @@ function bpn_flickr_private_oauth_authenticate() {
  * Form constructor for Step 2: Pick what images to load.
  */
 function bpn_flickr_private_form_step_2($form, &$form_state) {
+  module_load_include('module', 'oauth_common');
   $form['#bpn_chosen_form'] = array(
     '#type' => 'value',
     '#value' => TRUE,
@@ -167,109 +155,112 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
     '#type' => 'value',
     '#value' => bulk_photo_nodes_form_get_type(),
   );
+
+  $access_token = bpn_flickr_private_get_token();
+  dpm($access_token, 'Access Token');
   // flickr options
-  $flickr = bpn_flickr_private_get_api();
-  $user = bpn_flickr_private_get_user($form_state['flickr_username']);
+  // $flickr = bpn_flickr_private_get_api();
+  // // $user = bpn_flickr_private_get_user($form_state['flickr_username']);
 
-  // get photosets
-  $sets = bpn_flickr_private_get_sets($user);
-  $photosets = array();
-  if (!empty($sets)) {
-    foreach ($sets['photoset'] as $photoset) {
-      if ($photoset['photos'] > 0) {
-        $photosets[$photoset['id']] = $photoset['title'];
-      }
-    }
-  }
-  asort($photosets);
+  // // get photosets
+  // $sets = bpn_flickr_private_get_sets();
+  // $photosets = array();
+  // if (!empty($sets)) {
+  //   foreach ($sets['photoset'] as $photoset) {
+  //     if ($photoset['photos'] > 0) {
+  //       $photosets[$photoset['id']] = $photoset['title'];
+  //     }
+  //   }
+  // }
+  // asort($photosets);
 
-  $form['photo_container_selector']['photo_container_type'] = array(
-    '#type' => 'select',
-    '#options' => array(
-      t('Photos') => array(
-        'photostream' => 'Photostream',
-      ),
-      t('Sets') => $photosets,
-    ),
-    '#title' => 'View photos from:',
-  );
-  $num_photos_checked = '';
-  if (!empty($form_state['num_photos_checked'])) {
-    $num_photos_checked = "<p>You have selected $form_state[num_photos_checked] photos</p>";
-  }
-  $form['photo_container_selector']['stats'] = array(
-    '#markup' => $num_photos_checked,
-  );
-  $form['photo_container_selector']['update'] = array(
-    '#type' => 'submit',
-    '#value' => 'Update',
-    '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_update_photos'),
-  );
-  $form['photo_container_photos']['photostream'] = array(
-    '#type' => 'container',
-    '#tree' => TRUE,
-  );
+  // $form['photo_container_selector']['photo_container_type'] = array(
+  //   '#type' => 'select',
+  //   '#options' => array(
+  //     t('Photos') => array(
+  //       'photostream' => 'Photostream',
+  //     ),
+  //     t('Sets') => $photosets,
+  //   ),
+  //   '#title' => 'View photos from:',
+  // );
+  // $num_photos_checked = '';
+  // if (!empty($form_state['num_photos_checked'])) {
+  //   $num_photos_checked = "<p>You have selected $form_state[num_photos_checked] photos</p>";
+  // }
+  // $form['photo_container_selector']['stats'] = array(
+  //   '#markup' => $num_photos_checked,
+  // );
+  // $form['photo_container_selector']['update'] = array(
+  //   '#type' => 'submit',
+  //   '#value' => 'Update',
+  //   '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_update_photos'),
+  // );
+  // $form['photo_container_photos']['photostream'] = array(
+  //   '#type' => 'container',
+  //   '#tree' => TRUE,
+  // );
 
-  $page = (empty($form_state['flickr_page'])) ? 1 : $form_state['flickr_page'];
-  $photo_set = (empty($form_state['photo_set'])) ? 'photostream' : $form_state['photo_set'];
-  if ($photo_set == 'photostream') {
-    $photos_response = bpn_flickr_private_get_photos($user, $page);
-    $pages = $photos_response['photos']['pages'];
-    $photos = $photos_response['photos']['photo'];
-  }
-  else {
-    $photos_response = bpn_flickr_private_get_set($photo_set, $page);
-    $photos = $photos_response['photoset']['photo'];
-    $pages = $photos_response['photoset']['pages'];
-  }
+  // $page = (empty($form_state['flickr_page'])) ? 1 : $form_state['flickr_page'];
+  // $photo_set = (empty($form_state['photo_set'])) ? 'photostream' : $form_state['photo_set'];
+  // if ($photo_set == 'photostream') {
+  //   $photos_response = bpn_flickr_private_get_photos($page);
+  //   $pages = $photos_response['photos']['pages'];
+  //   $photos = $photos_response['photos']['photo'];
+  // }
+  // else {
+  //   $photos_response = bpn_flickr_private_get_set($photo_set, $page);
+  //   $photos = $photos_response['photoset']['photo'];
+  //   $pages = $photos_response['photoset']['pages'];
+  // }
 
-  if (!empty($photos)) {
-    if ($pages > 1) {
-      $form['flickr_pager'] = array(
-        '#type' => 'container',
-        '#tree' => TRUE,
-        '#weight' => -1,
-      );
-      $form['flickr_pager']['flickr_prev'] = array(
-        '#type' => 'submit',
-        '#value' => 'Previous Page',
-        '#submit' => array('bpn_flickr_private_photos_state','flickr_pager_prev'),
-      );
-      $form['flickr_pager']['pager_text'] = array(
-        '#preix' => '<span>',
-        '#markup' => "Page $page of " . $pages,
-        '#suffix' => '</span>',
-      );
-      $form['flickr_pager']['flickr_page'] = array(
-        '#type' => 'value',
-        '#value' => $page,
-      );
-      $form['flickr_pager']['flickr_next'] = array(
-        '#type' => 'submit',
-        '#value' => 'Next Page',
-        '#submit' => array('bpn_flickr_private_photos_state', 'flickr_pager_next'),
-      );
-    }
-    foreach ($photos as $key => $photo) {
-      $id = $photo['id'];
-      $has_values = !empty($form_state['checked_photos']);
-      $default_value = ($has_values && in_array($id, $form_state['checked_photos']));
-      $form['photo_container_photos']['photostream'][$id] = array(
-        '#type' => 'checkbox',
-        '#default_value' => $default_value,
-        '#prefix' => theme('image', array('path' => $photo['url_s'])),
-        '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
-      );
-    }
-  }
+  // if (!empty($photos)) {
+  //   if ($pages > 1) {
+  //     $form['flickr_pager'] = array(
+  //       '#type' => 'container',
+  //       '#tree' => TRUE,
+  //       '#weight' => -1,
+  //     );
+  //     $form['flickr_pager']['flickr_prev'] = array(
+  //       '#type' => 'submit',
+  //       '#value' => 'Previous Page',
+  //       '#submit' => array('bpn_flickr_private_photos_state','flickr_pager_prev'),
+  //     );
+  //     $form['flickr_pager']['pager_text'] = array(
+  //       '#preix' => '<span>',
+  //       '#markup' => "Page $page of " . $pages,
+  //       '#suffix' => '</span>',
+  //     );
+  //     $form['flickr_pager']['flickr_page'] = array(
+  //       '#type' => 'value',
+  //       '#value' => $page,
+  //     );
+  //     $form['flickr_pager']['flickr_next'] = array(
+  //       '#type' => 'submit',
+  //       '#value' => 'Next Page',
+  //       '#submit' => array('bpn_flickr_private_photos_state', 'flickr_pager_next'),
+  //     );
+  //   }
+  //   foreach ($photos as $key => $photo) {
+  //     $id = $photo['id'];
+  //     $has_values = !empty($form_state['checked_photos']);
+  //     $default_value = ($has_values && in_array($id, $form_state['checked_photos']));
+  //     $form['photo_container_photos']['photostream'][$id] = array(
+  //       '#type' => 'checkbox',
+  //       '#default_value' => $default_value,
+  //       '#prefix' => theme('image', array('path' => $photo['url_s'])),
+  //       '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
+  //     );
+  //   }
+  // }
 
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Next'),
-  );
-  $form['#submit'] = array(
-    'bpn_flickr_private_photos_state', 'bpn_flickr_private_form_step_2_submit',
-  );
+  // $form['submit'] = array(
+  //   '#type' => 'submit',
+  //   '#value' => t('Next'),
+  // );
+  // $form['#submit'] = array(
+  //   'bpn_flickr_private_photos_state', 'bpn_flickr_private_form_step_2_submit',
+  // );
   return $form;
 }
 
@@ -326,6 +317,7 @@ function bpn_flickr_private_get_api() {
   $flickr = &drupal_static(__FUNCTION__);
   if (!isset($flickr)) {
     $flickr = flickrapi_phpFlickr();
+    $flickr->setToken($_SESSION['bulk_photo_node_url_access_token']);
   }
   return $flickr;
 }
@@ -333,9 +325,9 @@ function bpn_flickr_private_get_api() {
 /**
  * Get the photosets for a user
  */
-function bpn_flickr_private_get_sets($user) {
+function bpn_flickr_private_get_sets() {
   $flickr = bpn_flickr_private_get_api();
-  return $flickr->photosets_getList($user['nsid']);
+  return $flickr->photosets_getList();
 }
 
 /**
@@ -344,6 +336,46 @@ function bpn_flickr_private_get_sets($user) {
 function bpn_flickr_private_get_user($username) {
   $flickr = bpn_flickr_private_get_api();
   return $flickr->people_findByUsername($username);
+}
+
+/**
+ * Get the flickr token
+ * @return [type] [description]
+ */
+function bpn_flickr_private_get_token() {
+  module_load_include('module', 'oauth_common');
+  $oauth_token = NULL;
+  $oauth_verifier = NULL;
+  if (isset($_GET['oauth_token'])) {
+    $oauth_token = $_GET['oauth_token'];
+  }
+  if (isset($_GET['oauth_verifier'])) {
+    $oauth_verifier = $_GET['oauth_verifier'];
+  }
+  if (!$oauth_token && isset($_SESSION['bulk_photo_node_oauth_token'])) {
+    $oauth_token = $_SESSION['bulk_photo_node_oauth_token'];
+  }
+  if (!$oauth_verifier && isset($_SESSION['bulk_photo_node_oauth_verifier'])) {
+    $oauth_verifier = $_SESSION['bulk_photo_node_oauth_verifier'];
+  }
+
+  dpm($oauth_token);
+  dpm($oauth_verifier);
+
+  $consumer = DrupalOAuthConsumer::load(variable_get('flickrapi_api_key', ''), FALSE);
+  $request_token = DrupalOAuthToken::loadByKey($oauth_token, $consumer, OAUTH_COMMON_TOKEN_TYPE_REQUEST);
+
+  $client = new DrupalOAuthClient($consumer, $request_token);
+
+  $access_token = $client->getAccessToken('http://www.flickr.com/services/oauth/access_token', array(
+    'verifier' => $oauth_verifier,
+  ));
+  dpm($access_token);
+  $_SESSION['bulk_photo_node_oauth_token'] = $oauth_token;
+  $_SESSION['bulk_photo_node_oauth_verifier'] = $oauth_verifier;
+
+  // $request_token->delete();
+  return $access_token;
 }
 
 /**
@@ -366,17 +398,17 @@ function bpn_flickr_private_get_set($set_id, $page = 1) {
 /**
  * Get photos from a user's photostream.
  */
-function bpn_flickr_private_get_photos($user, $page = 1) {
+function bpn_flickr_private_get_photos($page = 1) {
   $flickr = bpn_flickr_private_get_api();
   $options = array(
-    'user_id' => $user['nsid'],
+    'user_id' => 'me',
     'safe_search' => NULL,
     'extras' => 'url_s',
     'per_page' => 9,
     'page' => $page,
   );
   extract($options);
-  return $flickr->people_getPublicPhotos($user_id, $safe_search, $extras, $per_page, $page);
+  return $flickr->people_getPhotos('me', $options);
 }
 
 /**
@@ -416,12 +448,13 @@ function bpn_flickr_private_update_photos($form, &$form_state) {
 }
 
 /**
- * returns a file object which can be passed to file_save().
+ * Returns a file object which can be passed to file_save().
  *
- * @param $uri
- *  a string containing the uri, path, or filename.
- * @return
- *  a file object, or false on error.
+ * @param string $uri
+ *   a string containing the uri, path, or filename.
+ *
+ * @return mixed
+ *   a file object, or false on error.
  *
  * @todo replace with calls to this function with file_uri_to_object() when
  * http://drupal.org/node/685818 is fixed in core.
@@ -430,7 +463,7 @@ function bpn_flickr_private_file_uri_to_object($uri) {
   global $user;
   $uri = file_stream_wrapper_uri_normalize($uri);
   $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
-  $file = new stdclass;
+  $file = new stdClass();
   $file->uid = $user->uid;
   $file->filename = basename($uri);
   $file->uri = $uri;
