@@ -380,11 +380,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
 
         // If field is not empty, set as optional on all nodes.
 
-        DD($field_name, 'not empty');
-
         foreach(element_children($form['nodes']) as $key) {
-
-          // DD($form['nodes'][$key]['right']['node'][$field_name], 'node ' . $key . ', field ' . $field_name);
         
           if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
             bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
