@@ -336,7 +336,47 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   // $form['override_fields']['finish']['#validate'] = array('bulk_photo_nodes_add_form_validate');
   $form['override_fields']['finish']['#submit'][] = 'bulk_photo_nodes_add_form_submit';
   // bulk_photo_nodes_recursive_set_optional($form['override_fields']['fields'], $form_state);
-  // bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
+  
+  bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
+  
+  // DD('test');
+  // DD($form_state, 'form_state');
+  // DD($form, 'form');
+  
+  if (isset($form_state['input']['override_fields']['fields'])) {
+    
+    foreach ($form_state['input']['override_fields']['fields'] as $field_name => $field) {
+      
+      $field_info = field_info_field($field_name);
+      $empty_function = $info['module'] . '_field_is_empty';
+      $is_empty = TRUE;
+
+      if (function_exists($function)) {
+        $is_empty = $function($field, $field_name);
+      } // if
+      
+      if (!$is_empty) {
+        
+      } // if
+      
+    } // forach
+    
+  } // if
+  
+/*
+  $field_name = $form_state['triggering_element']['#field_name'];
+  foreach(element_children($form['nodes']) as $key) {
+    if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
+      if (empty($form_state['triggering_element']['#value'])) {
+        bulk_photo_nodes_recursive_set_required($form['nodes'][$key]['right']['node'][$field_name]);
+      }
+      else {
+        bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
+      }
+    }
+  }
+*/
+  
   return $form;
 }
 
@@ -544,16 +584,5 @@ function bulk_photo_nodes_is_required(&$element) {
 }
 
 function bulk_photo_nodes_add_form_ajax(&$form, &$form_state) {
-  $field_name = $form_state['triggering_element']['#field_name'];
-  foreach(element_children($form['nodes']) as $key) {
-    if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
-      if (empty($form_state['triggering_element']['#value'])) {
-        bulk_photo_nodes_recursive_set_required($form['nodes'][$key]['right']['node'][$field_name]);
-      }
-      else {
-        bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
-      }
-    }
-  }
   return $form['nodes'];
 }
