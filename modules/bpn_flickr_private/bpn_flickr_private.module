@@ -1,4 +1,18 @@
 <?php
+
+/**
+ * Implements hook_menu().
+ */
+function bpn_flickr_private_menu() {
+  $items = array();
+  $items['bulk_photo_nodes/auth'] = array(
+    'title' => 'Authenticate Flickr Credentials',
+    'page callback' => 'bpn_flickr_private_oauth_authenticate',
+    'access arguments' => array('create bulk photo nodes'),
+  );
+  return $items;
+}
+
 /**
  * Implements hook_bpn_upload().
  *
@@ -8,9 +22,17 @@ function bpn_flickr_private_bulk_photo_nodes_method() {
   return 'bpn_flickr_private_form';
 }
 
+/**
+ * Private form callback.
+ */
 function bpn_flickr_private_form($form, &$form_state) {
   if (empty($form_state['step'])) {
-    $form_state['step'] = 1;
+    if (isset($_GET['bpn_flickr_private'])) {
+      $form_state['step'] = 2;
+    }
+    else {
+      $form_state['step'] = 1;
+    }
   }
   $form_state['node_type'] = bulk_photo_nodes_form_get_type();
   $form_callback = 'bpn_flickr_private_form_step_' . $form_state['step'];
@@ -20,40 +42,112 @@ function bpn_flickr_private_form($form, &$form_state) {
 }
 
 /**
- * Form constrcutor for Step 1: Select flickr user.
+ * Form constructor for Step 1: Select flickr user.
  *
  * @see bpn_flickr_private_form_step_1_validate().
  */
 function bpn_flickr_private_form_step_1($form, &$form_state) {
-  $form['flickr'] = array(
-    '#prefix' => '<div class="flickr">',
+  // Check if the flickrapi module is authenticated.
+  module_load_include('module', 'flickrapi');
+  $authenticated = _flickrapi_is_authenticated();
+
+  if (!$authenticated) {
+    drupal_set_message(t('The Flickr settings have not been established yet.'));
+  }
+
+  $form['flickr_private'] = array(
+    '#prefix' => '<div class="flickr-private">',
     '#suffix' => '</div>',
   );
-  $form['flickr']['header'] = array(
-    '#markup' => '<h3>Flickr</h3>',
+  $form['flickr_private']['header'] = array(
+    '#markup' => '<h3>Flickr Private</h3>',
   );
-  $form['flickr']['username'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Username'),
-    '#description' => t('Enter the username to request images from.'),
-  );
-  $form['flickr']['next'] = array(
-    '#type' => 'submit',
-    '#value' => t('Next'),
-  );
-  $form['#validate'] = array('bpn_flickr_private_form_step_1_validate');
+  if ($authenticated) {
+
+    // $form['flickr_private']['username'] = array(
+    //   '#type' => 'textfield',
+    //   '#title' => t('Username'),
+    //   '#description' => t('Enter the username to request images from.'),
+    // );
+    $form['flickr_private']['username'] = array(
+      '#markup' => '<p>' . t('Press next to authenticate with your Flickr account') . '</p>',
+    );
+    $form['flickr_private']['next'] = array(
+      '#type' => 'submit',
+      '#value' => t('Next'),
+    );
+    $form['#submit'][] = 'bpn_flickr_private_form_step_1_submit';
+  }
+
   return $form;
 }
 
 /**
- * Form validation handler for bpn_flickr_private_form_step_1().
+ * Submit handler for Flickr private step 1.
+ *
+ * This will bump the user on over to Flickr to authenticate them.
  */
-function bpn_flickr_private_form_step_1_validate($form, &$form_state) {
-  $flickr = bpn_flickr_private_get_api();
-  $user = bpn_flickr_private_get_user($form_state['values']['username']);
-  if (empty($user)) {
-    form_set_error('username', $flickr->getErrorMsg());
+function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
+  module_load_include('module', 'oauth_common');
+  $callback = url('bulk_photo_nodes/auth', array('absolute' => TRUE));
+
+  // redirect to flickr authentication
+  // Set up a new OAuth Consumer and Client if it cannot be loaded.
+  $consumer = DrupalOAuthConsumer::load(variable_get('flickrapi_api_key', ''), FALSE);
+  if (!$consumer) {
+    $consumer = new DrupalOAuthConsumer(variable_get('flickrapi_api_key', ''), variable_get('flickrapi_api_secret', ''));
+    $consumer->write();
   }
+  $sig_method = DrupalOAuthClient::signatureMethod();
+  $client = new DrupalOAuthClient($consumer, NULL, $sig_method);
+  try {
+    if ($request_token = $client->getRequestToken('http://www.flickr.com/services/oauth/request_token', array('callback' => $callback))) {
+      $request_token->write();
+    }
+  }
+  catch (Exception $e) {
+    drupal_set_message(t('You API key and secret do not seem to match.'), 'error');
+    variable_del('flickrapi_api_key');
+    variable_del('flickrapi_api_secret');
+    drupal_goto('admin/config/media/flickrapi');
+  }
+
+  // save current address
+  $_SESSION['bulk_photo_node_url'] = implode('/', arg());
+
+  $auth_url = $client->getAuthorizationUrl(
+    'http://www.flickr.com/services/oauth/authorize', array(
+      'callback' => $callback,
+      'params' => array(
+        'perms' => variable_get('flickrapi_access_permissions', array('read')),
+      ),
+    )
+  );
+
+  // Send the user to the Flickr page which redirects
+  // back to the Drupal site after accepting.
+  drupal_goto($auth_url);
+}
+
+/**
+ * Handle OAuth authentication after step 1.
+ * @return [type] [description]
+ */
+function bpn_flickr_private_oauth_authenticate() {
+  dpm('bpn_flickr_private_oauth_authenticate');
+  module_load_include('module', 'oauth_common');
+  $consumer = DrupalOAuthConsumer::load(variable_get('flickrapi_api_key', ''), FALSE);
+  $request_token = DrupalOAuthToken::loadByKey($_GET['oauth_token'], $consumer, OAUTH_COMMON_TOKEN_TYPE_REQUEST);
+
+  $client = new DrupalOAuthClient($consumer, $request_token);
+  $access_token = $client->getAccessToken('http://www.flickr.com/services/oauth/access_token', array(
+    'verifier' => $_GET['oauth_verifier'])
+  );
+
+  $request_token->delete();
+
+  drupal_set_message(t('Succesfully verified'));
+  drupal_goto($_SESSION['bulk_photo_node_url'], array('query' => array('bpn_flickr_private' => 1)));
 }
 
 /**
@@ -206,9 +300,13 @@ function bpn_flickr_private_form_step_2_submit($form, &$form_state) {
   $form_state['step'] = 3;
 }
 
+/**
+ * Step 3 of the Flickr Private form.
+ */
 function bpn_flickr_private_form_step_3($form, &$form_state) {
   return bulk_photo_nodes_add_form($form, $form_state);
 }
+
 /**
  * Flickr submit handler
  */
@@ -303,11 +401,11 @@ function bpn_flickr_private_photos_state($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
-function flickr_pager_next($form, &$form_state) {
+function flickr_private_pager_next($form, &$form_state) {
   $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] + 1;
 }
 
-function flickr_pager_prev($form, &$form_state) {
+function flickr_private_pager_prev($form, &$form_state) {
   $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] - 1;
 }
 
