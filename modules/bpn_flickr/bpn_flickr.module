@@ -27,7 +27,7 @@ function bpn_flickr_form($form, &$form_state) {
 function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr'] = array(
     '#prefix' => '<div class="bpn-flickr">',
-    '#suffix' => '</div>' . '<div class="bpn-or">' . t('OR') . '</div>',
+    '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
   );
   $form['flickr']['header'] = array(
     '#markup' => '<h3>' . t('Upload Images From flickr') . '</h3>',
@@ -167,8 +167,9 @@ function bpn_flickr_form_step_2($form, &$form_state) {
       $form['photo_container_photos']['photostream'][$id] = array(
         '#type' => 'checkbox',
         '#default_value' => $default_value,
-        '#prefix' => theme('image', array('path' => $photo['url_s'])),
+        '#prefix' => '<div class="bpn-flickr-thumbnail">' . theme('image', array('path' => $photo['url_s'])),
         '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
+        '#suffix' => '</div>',
       );
     }
   }
