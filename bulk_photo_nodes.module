@@ -351,8 +351,10 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
 
   bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
 
-  $override_node = (object) $form_state['values']['override_fields']['fields'];
-  $override_node->type = $form_state['node_type'];
+  if (!empty($form_state['values']['override_fields']['fields'])) {
+    $override_node = (object) $form_state['values']['override_fields']['fields'];
+    $override_node->type = $form_state['node_type'];
+  }
 
   if (isset($form_state['input']['override_fields']['fields'])) {
 
