@@ -26,7 +26,7 @@ function bulk_photo_nodes_menu_alter(&$items) {
     foreach ($bpn_var as $node_type => $image_field) {
       $node_add_path = 'node/add/' . strtr($node_type, '_', '-');
       $items[$node_add_path]['page callback'] = 'bulk_photo_nodes_page';
-      $items[$node_add_path]['access arguments'] = array('create bulk photo nodes');
+      $items['access arguments'] = array('create bulk photo nodes');
       $items[$node_add_path]['page arguments'] = array($node_type);
     }
   }
