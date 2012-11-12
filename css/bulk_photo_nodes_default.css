@@ -78,3 +78,9 @@
   clear: left;
   float: left;
 }
+
+/* line 95, ../sass/bulk_photo_nodes_default.scss */
+.bpn-upload-option {
+  font-size: 24px;
+  padding: 20px 0;
+}
