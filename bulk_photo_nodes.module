@@ -23,7 +23,7 @@ function bulk_photo_nodes_menu_alter(&$items) {
   if (!empty($bpn_var)) {
     foreach ($bpn_var as $node_type => $image_field) {
       $node_type = strtr($node_type, '_', '-');
-      $items["node/add/$node_type"]['page callback'] = 'bulk_photo_node_page';
+      $items["node/add/$node_type"]['page callback'] = 'bulk_photo_nodes_page';
       $items['access arguments'] = array('create bulk photo nodes');
       $items["node/add/$node_type"]['page arguments'] = array(2);
     }
@@ -126,8 +126,9 @@ function bulk_photo_nodes_get_image_field($node_type) {
  *
  * @see bulk_photo_nodes_menu_alter()
  */
-function bulk_photo_node_page($node_type) {
+function bulk_photo_nodes_page($node_type) {
   if (bulk_photo_nodes_is_bpn_add_page()) {
+    drupal_add_css(drupal_get_path('module', 'bulk_photo_nodes') . '/css/bulk_photo_nodes_default.css');
     $content = array();
     $forms = module_invoke_all('bulk_photo_nodes_method');
     foreach ($forms as $form) {
@@ -194,9 +195,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   $form['#bpn_chosen_form'] = array(
     '#type' => 'value',
     '#value' => TRUE,
-  );
-  $form['#attached']['css'] = array(
-    drupal_get_path('module', 'bulk_photo_nodes') . '/css/bulk_photo_nodes_default.css',
   );
   $form['nodes'] = array(
     '#tree' => TRUE,
