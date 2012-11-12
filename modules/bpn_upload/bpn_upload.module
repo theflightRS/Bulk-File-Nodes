@@ -35,7 +35,7 @@ function bpn_upload_form($form, &$form_state) {
  */
 function bpn_upload_form_step_1($form, &$form_state) {
   $form = array(
-    'header' => array (
+    'header' => array(
       '#markup' => '<h3>' . t('Upload Images From Your Computer') . '</h3>',
     ),
     'plupload' => array(
@@ -46,6 +46,7 @@ function bpn_upload_form_step_1($form, &$form_state) {
   $form['next'] = array(
     '#type' => 'submit',
     '#value' => t('Next'),
+    '#suffix' => '<div class="description">' . t('Add description(s) on next page') . '</div>',
   );
   $form['#submit'] = array('bpn_upload_form_step_1_submit');
   drupal_set_title(t('Upload Images'));
