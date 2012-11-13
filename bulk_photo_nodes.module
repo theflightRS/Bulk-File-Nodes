@@ -17,6 +17,7 @@ function bulk_photo_nodes_permission() {
 
 /**
  * Implements hook_menu_alter().
+ *
  * Replaces standard node add pages with bulk pages.
  */
 function bulk_photo_nodes_menu_alter(&$items) {
@@ -104,7 +105,8 @@ function bulk_photo_nodes_get_image_fields($node_type) {
  *   The machine name of a content_type.
  *
  * @return string
- *   The machine name of the image field or 'none' if the content type isn't used
+ *   The machine name of the image field or 'none' if the content type isn't
+ *   used.
  */
 function bulk_photo_nodes_get_image_field($node_type) {
   $bpn_var = variable_get('bulk_photo_node_types');
@@ -149,9 +151,9 @@ function bulk_photo_nodes_page($node_type) {
       } // if
 
     } // foreach
-    
+
     // If we've chosen a form, only include that one.
-    
+
     if ($chosen_form) {
       $content['forms'] = array($chosen_form);
     }
@@ -319,7 +321,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     $form['nodes'][$key]['right']['node']['body']['#weight'] = 0;
     unset($form['nodes'][$key]['right']['node']['body']);
     // bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node']);
-    
   }
 
   $form['override_fields'] = array(
@@ -348,11 +349,13 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     '#submit' => array('bulk_photo_nodes_add_form_submit'),
     // '#validate' => array('bulk_photo_nodes_add_form_validate')
   );
-  
+
   bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
-  
-  $override_node = (object) $form_state['values']['override_fields']['fields'];
-  $override_node->type = $form_state['node_type'];
+
+  if (!empty($form_state['values']['override_fields']['fields'])) {
+    $override_node = (object) $form_state['values']['override_fields']['fields'];
+    $override_node->type = $form_state['node_type'];
+  }
 
   if (isset($form_state['input']['override_fields']['fields'])) {
 
@@ -367,7 +370,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
       if (function_exists($empty_function)) {
 
         $items = field_get_items('node', $override_node, $field_name);
-        
+
         foreach ($items as $item) {
           if (!$empty_function($item, $field_name)) {
             $is_empty = FALSE;
@@ -382,24 +385,24 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
         // If field is not empty, set as optional on all nodes.
 
         foreach(element_children($form['nodes']) as $key) {
-        
+
           if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
             bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
           } // if
-  
+
         } // forach
 
       } // if
-      
+
     } // forach
-    
+
   } // if
-  
+
   return $form;
 
 }
 
-/** 
+/**
  * AJAX callback for bulk_photo_nodes_add_form().
  */
 function bulk_photo_nodes_add_form_ajax(&$form, &$form_state) {
@@ -554,18 +557,18 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
   if (!$element) {
     return;
   } // if
-  
+
   if (isset($element['#required'])) {
-  
+
     $element['#required'] = FALSE;
     $element['#element_validate'] = array();
-  
+
   } // if
-  
+
   $children = element_children($element);
 
   if ($children) {
-  
+
     foreach ($children as $child) {
       bulk_photo_nodes_recursive_set_optional($element[$child]);
     } // foreach
@@ -589,7 +592,7 @@ function bulk_photo_nodes_is_required(&$element) {
   if (isset($element['#required']) && $element['#required']) {
     return TRUE;
   } // if
-  
+
   $children = element_children($element);
 
   if ($children) {
