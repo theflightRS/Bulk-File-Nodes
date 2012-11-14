@@ -148,6 +148,7 @@ function bulk_photo_nodes_page($node_type) {
 
       if (array_key_exists('#bpn_chosen_form', $form)) {
         $chosen_form = $form;
+        break;
       } // if
 
     } // foreach
