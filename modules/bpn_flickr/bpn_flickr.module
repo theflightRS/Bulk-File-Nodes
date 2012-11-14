@@ -45,6 +45,12 @@ function bpn_flickr_form_step_1($form, &$form_state) {
   $form['#validate'] = array('bpn_flickr_form_step_1_validate');
   $form['#submit'] = array('bpn_flickr_form_step_1_submit');
 
+  $form['#attributes'] = array(
+    'class' => array(
+      'clearfix',
+    ),
+  );
+
   return $form;
 }
 
@@ -128,6 +134,11 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     '#submit' => array('bpn_flickr_photos_state', 'bpn_flickr_update_photos'),
   );
   $form['photo_container_photos']['photostream'] = array(
+    '#attributes' => array(
+      'class' => array(
+        'clearfix',
+      ),
+    ),
     '#type' => 'container',
     '#tree' => TRUE,
   );
@@ -179,9 +190,9 @@ function bpn_flickr_form_step_2($form, &$form_state) {
       $form['photo_container_photos']['photostream'][$id] = array(
         '#type' => 'checkbox',
         '#default_value' => $default_value,
-        '#prefix' => '<div class="bpn-flickr-thumbnail">' . theme('image', array('path' => $photo['url_s'])),
+        '#prefix' => '<div class="bpn-flickr-thumbnail"><div class="inner">' . theme('image', array('path' => $photo['url_s'])),
         '#title' => empty($photo['title']) ? t('Untitled') : $photo['title'],
-        '#suffix' => '</div>',
+        '#suffix' => '</div></div>',
       );
     }
   }
@@ -193,6 +204,13 @@ function bpn_flickr_form_step_2($form, &$form_state) {
   $form['#submit'] = array(
     'bpn_flickr_photos_state', 'bpn_flickr_form_step_2_submit',
   );
+
+  $form['#attributes'] = array(
+    'class' => array(
+      'clearfix',
+    ),
+  );
+
   return $form;
 }
 
