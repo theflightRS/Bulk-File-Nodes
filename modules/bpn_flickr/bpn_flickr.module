@@ -324,12 +324,14 @@ function bpn_flickr_update_photos($form, &$form_state) {
 }
 
 /**
- * returns a file object which can be passed to file_save().
+ * Returns a file object which can be passed to file_save().
  *
- * @param $uri
+ * @param string $uri
+ *   a string containing the uri, path, or filename.
+ *
  *  a string containing the uri, path, or filename.
- * @return
- *  a file object, or false on error.
+ * @return stdClass
+ *   a file object, or false on error.
  *
  * @todo replace with calls to this function with file_uri_to_object() when
  * http://drupal.org/node/685818 is fixed in core.
