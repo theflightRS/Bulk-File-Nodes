@@ -297,7 +297,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     $form['nodes'][$key]['right']['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
-      '#default_value' => 'testtitle',
       '#required' => TRUE,
       '#weight' => -10,
       '#attributes' => array(
