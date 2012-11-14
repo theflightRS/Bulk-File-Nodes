@@ -223,6 +223,7 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
   $saved_files = array();
   foreach ($form_state['checked_photos'] as $key => $flickr_id) {
     $flickr_sizes = bpn_flickr_get_photo($flickr_id);
+    $extra_info = bpn_flickr_get_info($flickr_id);
     $largest_size = count($flickr_sizes) - 1;
     // Get URL to download  image from.
     $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
@@ -234,7 +235,10 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
     // Convert the saved file to a file object.
     $file_object = bpn_flickr_file_uri_to_object($file_uri);
     file_save($file_object);
-    $form_state['saved_files'][] = $file_object;
+    $form_state['saved_files'][] = array(
+      'extra_info' => $extra_info['photo'],
+      'file_object' => $file_object,
+    );
   }
   $form_state['rebuild'] = TRUE;
   $form_state['step'] = 3;
@@ -313,6 +317,13 @@ function bpn_flickr_get_photo($photo_id) {
   return $flickr->photos_getSizes($photo_id);
 }
 
+/**
+ * Get information from a photo on flickr.
+ */
+function bpn_flickr_get_info($photo_id) {
+  $flickr = bpn_flickr_get_api();
+  return $flickr->photos_getInfo($photo_id);
+}
 
 function bpn_flickr_photos_state($form, &$form_state) {
   if (empty($form_state['checked_photos'])) {
@@ -342,12 +353,13 @@ function bpn_flickr_update_photos($form, &$form_state) {
 }
 
 /**
- * returns a file object which can be passed to file_save().
+ * Returns a file object which can be passed to file_save().
  *
- * @param $uri
- *  a string containing the uri, path, or filename.
- * @return
- *  a file object, or false on error.
+ * @param string $uri
+ *   a string containing the uri, path, or filename.
+ *
+ * @return stdClass
+ *   a file object, or false on error.
  *
  * @todo replace with calls to this function with file_uri_to_object() when
  * http://drupal.org/node/685818 is fixed in core.

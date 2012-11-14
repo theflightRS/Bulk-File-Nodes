@@ -66,7 +66,10 @@ function bpn_upload_form_step_1_submit($form, &$form_state) {
       $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
       $file = plupload_file_uri_to_object($destination);
       file_save($file);
-      $form_state['saved_files'][] = $file;
+      $form_state['saved_files'][] = array(
+        'extra_info' => FALSE,
+        'file_object' => $file,
+      );
     }
     else {
       form_set_error('plupload', "Upload of {$uploaded_file['name']} failed");
