@@ -223,7 +223,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   );
 
   foreach ($form_state['saved_files'] as $key => $file) {
-    $extra_info = $file['extra_info'] ? $file['extra_info'] : FALSE;
+    $extra_info = !empty($file['extra_info']) ? $file['extra_info'] : array();
     $vars = array(
       'style_name' => 'bulk_photo_nodes',
       'path' => $file['file_object']->uri,
@@ -295,7 +295,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
       '#weight' => 10,
     );
     // Manually add a title form item since it's not a field.
-    $default_title = !empty($extra_info) && isset($extra_info['title']) ? $extra_info['title'] : '';
+    $default_title = array_key_exists('title', $extra_info) ? $extra_info['title'] : '';
     $form['nodes'][$key]['right']['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
