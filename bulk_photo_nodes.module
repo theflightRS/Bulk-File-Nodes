@@ -322,7 +322,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     $form['nodes'][$key]['right']['body'] = $form['nodes'][$key]['right']['node']['body'];
     $form['nodes'][$key]['right']['node']['body']['#weight'] = 0;
     unset($form['nodes'][$key]['right']['node']['body']);
-    // bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node']);
   }
 
   $form['override_fields'] = array(
@@ -352,6 +351,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     // '#validate' => array('bulk_photo_nodes_add_form_validate')
   );
 
+  bulk_photo_nodes_recursive_set_optional($form['override_fields']['fields']);
   bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
 
   if (!empty($form_state['values']['override_fields']['fields'])) {
@@ -372,14 +372,18 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
       if (function_exists($empty_function)) {
 
         $items = field_get_items('node', $override_node, $field_name);
+        if(is_array($items)) {
+          foreach ($items as $item) {
+            if (!$empty_function($item, $field_name)) {
+              $is_empty = FALSE;
+            } // if
 
-        foreach ($items as $item) {
-          if (!$empty_function($item, $field_name)) {
-            $is_empty = FALSE;
-          } // if
+          } // foreach
 
-        } // foreach
-
+        } // if
+        elseif (!is_array($items) && !empty($items)) {
+          $is_empty = FALSE;
+        }
       } // if
 
       if (!$is_empty) {
@@ -464,14 +468,14 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
   unset($node_fields['right']['body']);
   unset($node_fields['right']['title']);
   // Prepare a new node for saving.
-  $node = new stdClass();
+  $node = (object) $node_fields['right']['node'];
   $node->type = $node_type;
   $node->language = LANGUAGE_NONE;
   node_object_prepare($node);
   // Move the file from public to field-defined destination.
   $options = bulk_photo_nodes_get_file_info($node_type);
-  $field_name = $options['field_name'];
-  $image_field = (object) $node_fields['right']['node'][$field_name][LANGUAGE_NONE][0];
+  $image_field_name = $options['field_name'];
+  $image_field = (object) $node_fields['right']['node'][$image_field_name][LANGUAGE_NONE][0];
   $extension = pathinfo($image_field->filename, PATHINFO_EXTENSION);
   $query_string = "SELECT COUNT(nid) FROM {node} WHERE type = :node_type AND uid = :uid";
   $images_count = db_query($query_string, array(
@@ -482,22 +486,33 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
 
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
-    $node->$field_name = $field_values;
-    if (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) > 1) {
-      // This is a mult-value field. Iterate through it.
-      foreach ($field_values[LANGUAGE_NONE] as $key => $field) {
-        if (!empty($field['value'])) {
-          if (!empty($node_overrides[$field_name][LANGUAGE_NONE][$key])) {
-            $node->$field_name[LANGUAGE_NONE][$key] = $node_overrides[$field_name][LANGUAGE_NONE][$key];
-          }
-        }
-      }
+    if ($field_name == $image_field_name || $field_name == 'title') {
+      continue;
     }
-    elseif (!empty($field_values[LANGUAGE_NONE]) && count($field_values[LANGUAGE_NONE]) == 1) {
-      // This is a single value field.
-      if (!empty($node_overrides[$field_name][LANGUAGE_NONE][0]['value'])) {
-        $node->$field_name = $node_overrides[$field_name];
+    $field_info = field_info_field($field_name);
+    // Check if field is empty.
+    $empty_function = $field_info['module'] . '_field_is_empty';
+    $is_empty = TRUE;
+    if (function_exists($empty_function)) {
+      $items = field_get_items('node', $node, $field_name);
+      if(is_array($items)) {
+        foreach ($items as $item) {
+          if (!$empty_function($item, $field_name)) {
+            $is_empty = FALSE;
+          } // if
+          else {
+          }
+        } // foreach
+      } // if
+      elseif (!is_array($items) && !empty($items)) {
+        $is_empty = FALSE;
       }
+    } // if
+    if ($is_empty) {
+      $node->$field_name = $node_overrides[$field_name];
+    }
+    else {
+      $node->$field_name = $field_values;
     }
   }
   node_save($node);
@@ -539,6 +554,9 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       'callback' => 'bulk_photo_nodes_add_form_ajax',
       'method' => 'replace',
     );
+    if (!empty($element['#autocomplete_path'])) {
+      $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
+    }
   }
   else {
     $element['#ajax'] = array(
@@ -546,6 +564,9 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       'callback' => 'bulk_photo_nodes_add_form_ajax',
       'method' => 'replace',
     );
+    if (!empty($element['#autocomplete_path'])) {
+      $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
+    }
   }
 }
 
@@ -611,4 +632,41 @@ function bulk_photo_nodes_is_required(&$element) {
   } // if
 
   return FALSE;
+}
+
+function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
+  $value = array();
+  if ($tags = $element['#value']) {
+    // Collect candidate vocabularies.
+    // $field = field_widget_field($element, $form_state);
+    $field_info = field_info_field($element['#field_name']);
+    $field_instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
+    $vocabularies = array();
+    foreach ($field_info['settings']['allowed_values'] as $tree) {
+      if ($vocabulary = taxonomy_vocabulary_machine_name_load($tree['vocabulary'])) {
+        $vocabularies[$vocabulary->vid] = $vocabulary;
+      }
+    }
+
+    // Translate term names into actual terms.
+    $typed_terms = drupal_explode_tags($tags);
+    foreach ($typed_terms as $typed_term) {
+      // See if the term exists in the chosen vocabulary and return the tid;
+      // otherwise, create a new 'autocreate' term for insert/update.
+      if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array_keys($vocabularies)))) {
+        $term = array_pop($possibilities);
+      }
+      else {
+        $vocabulary = reset($vocabularies);
+        $term = array(
+          'tid' => 'autocreate',
+          'vid' => $vocabulary->vid,
+          'name' => $typed_term,
+          'vocabulary_machine_name' => $vocabulary->machine_name,
+        );
+      }
+      $value[] = (array)$term;
+    }
+  }
+  form_set_value($element, $value, $form_state);
 }
