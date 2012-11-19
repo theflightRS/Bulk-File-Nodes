@@ -505,7 +505,9 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
         } // foreach
       } // if
       elseif (!is_array($items) && !empty($items)) {
-        $is_empty = FALSE;
+        if (!$empty_function($items, $field_name)) {
+          $is_empty = FALSE;
+        } // if
       }
     } // if
     if ($is_empty) {
@@ -557,6 +559,11 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     if (!empty($element['#autocomplete_path'])) {
       $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
     }
+    elseif (!empty($element['#type']) && $element['#type'] == 'select'){
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid'){
+        $element['#element_validate'] = array('bpn_taxonomy_validate');
+      }
+    }
   }
   else {
     $element['#ajax'] = array(
@@ -566,6 +573,11 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     );
     if (!empty($element['#autocomplete_path'])) {
       $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
+    }
+    elseif (!empty($element['#type']) && $element['#type'] == 'select'){
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid'){
+        $element['#element_validate'] = array('bpn_taxonomy_validate');
+      }
     }
   }
 }
@@ -638,7 +650,6 @@ function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
   $value = array();
   if ($tags = $element['#value']) {
     // Collect candidate vocabularies.
-    // $field = field_widget_field($element, $form_state);
     $field_info = field_info_field($element['#field_name']);
     $field_instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
     $vocabularies = array();
@@ -669,4 +680,10 @@ function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
     }
   }
   form_set_value($element, $value, $form_state);
+}
+
+function bpn_taxonomy_validate(&$element, &$form_state) {
+  if ($element_term = $element['#value']) {
+    form_set_value($element, $element['#value'], $form_state);
+  }
 }
