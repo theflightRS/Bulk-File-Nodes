@@ -65,26 +65,27 @@
   margin: 1em 0;
 }
 
-/* line 83, ../sass/bulk_photo_nodes_default.scss */
-.bpn-flickr {
+/* line 84, ../sass/bulk_photo_nodes_default.scss */
+.bpn-flickr,
+.flickr-private {
   background: url(../images/flickr_logo.png) no-repeat 100% 0;
   background-color: #FFFFFF;
   border: solid 1px #CCCCCC;
   padding: 10px;
 }
 
-/* line 90, ../sass/bulk_photo_nodes_default.scss */
+/* line 91, ../sass/bulk_photo_nodes_default.scss */
 .bpn-flickr-thumbnail {
   float: left;
   margin: 0 2em 2em 0;
   border: 1px solid #CCC;
 }
-/* line 94, ../sass/bulk_photo_nodes_default.scss */
+/* line 95, ../sass/bulk_photo_nodes_default.scss */
 .bpn-flickr-thumbnail .inner {
   padding: 1em;
 }
 
-/* line 99, ../sass/bulk_photo_nodes_default.scss */
+/* line 100, ../sass/bulk_photo_nodes_default.scss */
 .bpn-upload-option {
   font-size: 24px;
   padding: 20px 0;
