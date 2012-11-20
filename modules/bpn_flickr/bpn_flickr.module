@@ -198,8 +198,10 @@ function bpn_flickr_form_step_2($form, &$form_state) {
   }
 
   $form['submit'] = array(
+    '#prefix' => '<div class="bpn-continue">',
     '#type' => 'submit',
     '#value' => t('Done Adding Photos - Continue'),
+    '#suffix' => '</div>',
   );
   $form['#submit'] = array(
     'bpn_flickr_photos_state', 'bpn_flickr_form_step_2_submit',
