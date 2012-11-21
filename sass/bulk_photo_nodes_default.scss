@@ -30,8 +30,8 @@
     input.form-submit {
       margin: 10px;
     }
-    .text-full {
-      padding: 5px;
+    .form-textarea {
+      padding: 0;
     }
     .form-text {
       width: 230px;
@@ -48,9 +48,6 @@
   .bpn-info-node-left {
     float: left;
     width: 28%;
-    .text-full {
-      padding: 5px;
-    }
     .form-text {
       width: 350px;
     }
