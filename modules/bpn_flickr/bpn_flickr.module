@@ -40,7 +40,7 @@ function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr']['next'] = array(
     '#type' => 'submit',
     '#value' => t('Next'),
-    '#suffix' => '<div class="description">' . t('Add description(s) on next page') . '</div>',
+    '#suffix' => '<div class="description">' . t('Select image(s) on next page') . '</div>',
   );
   $form['#validate'] = array('bpn_flickr_form_step_1_validate');
   $form['#submit'] = array('bpn_flickr_form_step_1_submit');
