@@ -30,12 +30,12 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
   );
   $form['flickr']['header'] = array(
-    '#markup' => '<h3>' . t('Upload Public Images From flickr') . '</h3>',
+    '#markup' => '<h3>' . t('Upload Public Images from Flickr') . '</h3>',
   );
   $form['flickr']['username'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
-    '#description' => t('Enter the username to request images from.'),
+    '#description' => t('Enter a Flickr username to request images from.'),
   );
   $form['flickr']['next'] = array(
     '#type' => 'submit',
