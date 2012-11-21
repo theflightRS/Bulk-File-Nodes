@@ -54,11 +54,12 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
   }
 
   $form['flickr_private'] = array(
-    '#prefix' => '<div class="flickr-private">',
-    '#suffix' => '</div>',
+    '#prefix' => '<div class="bpn-flickr bpn-flickr-private">',
+    '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
   );
+
   $form['flickr_private']['header'] = array(
-    '#markup' => '<h3>Flickr Private</h3>',
+    '#markup' => '<h3>' . t('Upload Images from your Flickr Account') . '</h3>',
   );
   if ($authenticated) {
 
@@ -68,11 +69,11 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
     //   '#description' => t('Enter the username to request images from.'),
     // );
     $form['flickr_private']['username'] = array(
-      '#markup' => '<p>' . t('Press next to authenticate with your Flickr account') . '</p>',
+      '#markup' => '<p>' . t('Authenticate with your Flickr account.') . '</p>',
     );
     $form['flickr_private']['next'] = array(
       '#type' => 'submit',
-      '#value' => t('Next'),
+      '#value' => t('Authenticate'),
     );
     $form['#submit'][] = 'bpn_flickr_private_form_step_1_submit';
   }
@@ -156,7 +157,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
     '#tree' => TRUE,
     '#weight' => -2,
   );
-    
+
   // get photosets
   $sets = bpn_flickr_private_get_sets($user);
   $photosets = array();
@@ -331,7 +332,7 @@ function bpn_flickr_private_get_api() {
   $flickr = &drupal_static(__FUNCTION__);
 
   if (!isset($flickr)) {
-    
+
     $query = db_select('oauth_common_token', 't')->fields('t');
     $query->join('oauth_common_consumer', 'c', 'c.csid = t.csid');
     $query->condition('c.consumer_key', variable_get('flickrapi_api_key', ''));
@@ -341,11 +342,11 @@ function bpn_flickr_private_get_api() {
     $result = $query->execute();
 
     $token = DrupalOAuthToken::fromResult($result);
-    
+
     if (!$token) {
       return FALSE;
     }
-    
+
     $flickr = new phpFlickr($token->key, $token->secret);
     $flickr->setCustomPost('_bpn_flickr_private_custom_post');
 
@@ -372,7 +373,7 @@ function _bpn_flickr_private_custom_post($url, $data) {
   $consumer = DrupalOAuthConsumer::load(variable_get('flickrapi_api_key', ''), FALSE);
   $sig_method = FlickrApiOAuthClient::signatureMethod();
   $client = new FlickrApiOAuthClient($consumer, $token, $sig_method);
-  
+
   $response = $client->get($url, array('token' => TRUE, 'params' => $data));
 
   return $response;
