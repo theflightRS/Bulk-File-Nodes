@@ -360,48 +360,41 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   }
 
   if (isset($form_state['input']['override_fields']['fields'])) {
-
     foreach ($form_state['input']['override_fields']['fields'] as $field_name => $field) {
-
       // Check if field is empty.
-
       $field_info = field_info_field($field_name);
       $empty_function = $field_info['module'] . '_field_is_empty';
-      $is_empty = TRUE;
+      $field_has_value = FALSE;
 
       if (function_exists($empty_function)) {
-
-        $items = field_get_items('node', $override_node, $field_name);
-        if(is_array($items)) {
-          foreach ($items as $item) {
+        $field_items = field_get_items('node', $override_node, $field_name);
+        if(is_array($field_items)) {
+          // Multi-value field.
+          foreach ($field_items as $item) {
             if (!$empty_function($item, $field_name)) {
-              $is_empty = FALSE;
-            } // if
-
-          } // foreach
-
-        } // if
-        elseif (!is_array($items) && !empty($items)) {
-          $is_empty = FALSE;
+              $field_has_value = TRUE;
+            }
+          }
         }
-      } // if
+        elseif (!is_array($field_items) && !empty($field_items)) {
+          // String/numeric value.
+          if (!$empty_function($field_items, $field_name)) {
+            $field_has_value = TRUE;
+          }
+          else {
+            $field_has_value = FALSE;
+          }
+        }
+      }
 
-      if (!$is_empty) {
-
-        // If field is not empty, set as optional on all nodes.
-
+      if ($field_has_value) {
         foreach(element_children($form['nodes']) as $key) {
-
           if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
             bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
           } // if
-
         } // forach
-
       } // if
-
     } // forach
-
   } // if
 
   drupal_alter('bulk_photo_nodes_overrides', $form, $form_state);
@@ -620,7 +613,6 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
  *   The first element to recursively check for #required = TRUE.
  */
 function bulk_photo_nodes_is_required(&$element) {
-
   if (!$element) {
     return FALSE;
   }
@@ -683,7 +675,15 @@ function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
 }
 
 function bpn_taxonomy_validate(&$element, &$form_state) {
-  if ($element_term = $element['#value']) {
-    form_set_value($element, $element['#value'], $form_state);
+  if($element['#value'] !== '_none') {
+    $term = array(
+      0 => array(
+        'tid' => $element['#value'],
+      )
+    );
   }
+  else {
+    $term = 0;
+  }
+  form_set_value($element, $term, $form_state);
 }

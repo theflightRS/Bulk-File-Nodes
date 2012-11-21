@@ -30,7 +30,7 @@ function bpn_flickr_form_step_1($form, &$form_state) {
     '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
   );
   $form['flickr']['header'] = array(
-    '#markup' => '<h3>' . t('Upload Images From flickr') . '</h3>',
+    '#markup' => '<h3>' . t('Upload Public Images From flickr') . '</h3>',
   );
   $form['flickr']['username'] = array(
     '#type' => 'textfield',
@@ -40,7 +40,7 @@ function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr']['next'] = array(
     '#type' => 'submit',
     '#value' => t('Next'),
-    '#suffix' => '<div class="description">' . t('Add description(s) on next page') . '</div>',
+    '#suffix' => '<div class="description">' . t('Select image(s) on next page') . '</div>',
   );
   $form['#validate'] = array('bpn_flickr_form_step_1_validate');
   $form['#submit'] = array('bpn_flickr_form_step_1_submit');
@@ -69,7 +69,7 @@ function bpn_flickr_form_step_1_validate($form, &$form_state) {
  * Form submission handler for bpn_flickr_form_step_2().
  */
 function bpn_flickr_form_step_1_submit($form, &$form_state) {
-  
+
   $form_state['rebuild'] = TRUE;
   if (isset($form_state['values']['username']) && !empty($form_state['values']['username'])) {
     $form_state['flickr_username'] = $form_state['values']['username'];
@@ -115,13 +115,13 @@ function bpn_flickr_form_step_2($form, &$form_state) {
       ),
       t('Sets') => $photosets,
     ),
-    '#title' => 'View photos from:',
+    '#title' => t('View flickr photos from:'),
   );
-  
+
   $count = (isset($form_state['num_photos_checked'])) ? intval($form_state['num_photos_checked']) : 0;
-  
+
   $form['photo_container_selector']['stats'] = array(
-    '#markup' => '<p>' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . $count . '</span></p>',
+    '#markup' => '<div class="bpn-flickr-selected-count">' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . $count . '</span></div>',
     '#attached' => array(
       'js' => array(
         drupal_get_path('module', 'bpn_flickr') . '/js/bpn_flickr.js',
@@ -198,8 +198,10 @@ function bpn_flickr_form_step_2($form, &$form_state) {
   }
 
   $form['submit'] = array(
+    '#prefix' => '<div class="bpn-continue">',
     '#type' => 'submit',
-    '#value' => t('Next'),
+    '#value' => t('Done Adding Photos - Continue'),
+    '#suffix' => '</div>',
   );
   $form['#submit'] = array(
     'bpn_flickr_photos_state', 'bpn_flickr_form_step_2_submit',
