@@ -15,7 +15,7 @@
 
   .bpn-left {
     float: left;
-    width: 67%;
+    width: 68%;
   }
 
   .bpn-right {
@@ -30,6 +30,12 @@
     input.form-submit {
       margin: 10px;
     }
+    .form-textarea {
+      padding: 0;
+    }
+    .form-text {
+      width: 230px;
+    }
   }
 
   .bpn-info-node {
@@ -41,12 +47,15 @@
 
   .bpn-info-node-left {
     float: left;
-    width: 30%;
+    width: 28%;
+    .form-text {
+      width: 350px;
+    }
   }
 
   .bpn-info-node-right {
     float: right;
-    width: 67%;
+    width: 70%;
   }
 
   .bpn-info-node-image {
@@ -66,8 +75,7 @@
   }
 
   .bpn-info-node-additional {
-    border: 1px solid #CCC;
-    padding: 2.5em 0 0 0;
+    padding: 10px 0 0 0;
     position: relative;
     margin: 1em 0;
   }
@@ -80,7 +88,8 @@
 
 }
 
-.bpn-flickr {
+.bpn-flickr,
+.flickr-private {
   background: url(../images/flickr_logo.png) no-repeat 100% 0;
   background-color: #FFFFFF;
   border: solid 1px #CCCCCC;
@@ -99,4 +108,8 @@
 .bpn-upload-option {
   font-size: 24px;
   padding: 20px 0;
+}
+
+.bpn-info-node-additional {
+  padding: 5px;
 }
