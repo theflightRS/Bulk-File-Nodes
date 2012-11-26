@@ -149,12 +149,10 @@ function bulk_photo_nodes_page($node_type) {
       if (array_key_exists('#bpn_chosen_form', $form)) {
         $chosen_form = $form;
         break;
-      } // if
-
-    } // foreach
+      }
+    }
 
     // If we've chosen a form, only include that one.
-
     if ($chosen_form) {
       $content['forms'] = array($chosen_form);
     }
@@ -201,7 +199,7 @@ function bulk_photo_nodes_is_bpn_add_page($node_type) {
  * @ingroup forms
  */
 function bulk_photo_nodes_add_form($form, &$form_state) {
-
+  bulk_photo_nodes_chosen_form('bulk_photo_nodes_add_form');
   drupal_set_title(t('Bulk Add Info'));
 
   $form = array();
@@ -362,40 +360,16 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   if (isset($form_state['input']['override_fields']['fields'])) {
     foreach ($form_state['input']['override_fields']['fields'] as $field_name => $field) {
       // Check if field is empty.
-      $field_info = field_info_field($field_name);
-      $empty_function = $field_info['module'] . '_field_is_empty';
-      $field_has_value = FALSE;
-
-      if (function_exists($empty_function)) {
-        $field_items = field_get_items('node', $override_node, $field_name);
-        if(is_array($field_items)) {
-          // Multi-value field.
-          foreach ($field_items as $item) {
-            if (!$empty_function($item, $field_name)) {
-              $field_has_value = TRUE;
-            }
-          }
-        }
-        elseif (!is_array($field_items) && !empty($field_items)) {
-          // String/numeric value.
-          if (!$empty_function($field_items, $field_name)) {
-            $field_has_value = TRUE;
-          }
-          else {
-            $field_has_value = FALSE;
+      $field_has_value = bulk_photo_nodes_check_field_empty($field_name, $override_node);
+      if ($field_has_value) {
+        foreach (element_children($form['nodes']) as $key) {
+          if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
+            bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
           }
         }
       }
-
-      if ($field_has_value) {
-        foreach(element_children($form['nodes']) as $key) {
-          if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
-            bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
-          } // if
-        } // forach
-      } // if
-    } // forach
-  } // if
+    }
+  }
 
   drupal_alter('bulk_photo_nodes_overrides', $form, $form_state);
   return $form;
@@ -426,6 +400,7 @@ function bulk_photo_nodes_add_form_submit($form, &$form_state) {
   }
   $image_style = image_style_load('bulk_photo_nodes');
   image_style_flush($image_style);
+  watchdog('bulk_photo_nodes', "$node_count Photos saved successfully");
   drupal_set_message("$node_count Photos saved successfully");
 }
 
@@ -456,6 +431,7 @@ function bulk_photo_nodes_delete_node($form, &$form_state) {
  *   TRUE if the node was saved successfully, FALSE otherwise.
  */
 function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
+  // Move title and body back.
   $node_fields['right']['node']['body'] = $node_fields['right']['body'];
   $node_fields['right']['node']['title'] = $node_fields['right']['title'];
   unset($node_fields['right']['body']);
@@ -480,6 +456,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
     if ($field_name == $image_field_name || $field_name == 'title') {
+      // Skip the title form item.
       continue;
     }
     $field_info = field_info_field($field_name);
@@ -488,21 +465,19 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
     $is_empty = TRUE;
     if (function_exists($empty_function)) {
       $items = field_get_items('node', $node, $field_name);
-      if(is_array($items)) {
+      if (is_array($items)) {
         foreach ($items as $item) {
           if (!$empty_function($item, $field_name)) {
             $is_empty = FALSE;
-          } // if
-          else {
           }
-        } // foreach
-      } // if
+        }
+      }
       elseif (!is_array($items) && !empty($items)) {
         if (!$empty_function($items, $field_name)) {
           $is_empty = FALSE;
-        } // if
+        }
       }
-    } // if
+    }
     if ($is_empty) {
       $node->$field_name = $node_overrides[$field_name];
     }
@@ -510,6 +485,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
       $node->$field_name = $field_values;
     }
   }
+  drupal_alter('bulk_photo_nodes_node', $node, $node_fields, $node_overrides);
   node_save($node);
   return (!empty($node->nid)) ? TRUE : FALSE;
 }
@@ -552,8 +528,8 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     if (!empty($element['#autocomplete_path'])) {
       $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
     }
-    elseif (!empty($element['#type']) && $element['#type'] == 'select'){
-      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid'){
+    elseif (!empty($element['#type']) && $element['#type'] == 'select') {
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
         $element['#element_validate'] = array('bpn_taxonomy_validate');
       }
     }
@@ -565,10 +541,12 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       'method' => 'replace',
     );
     if (!empty($element['#autocomplete_path'])) {
+      // Add custom validation for autocomplete taxonomy textfields.
       $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
     }
-    elseif (!empty($element['#type']) && $element['#type'] == 'select'){
-      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid'){
+    elseif (!empty($element['#type']) && $element['#type'] == 'select') {
+      // Add custom validation for taxonomy selects.
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
         $element['#element_validate'] = array('bpn_taxonomy_validate');
       }
     }
@@ -582,28 +560,19 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
  *   The first element to recursively set #required = FALSE.
  */
 function bulk_photo_nodes_recursive_set_optional(&$element) {
-
   if (!$element) {
     return;
-  } // if
-
+  }
   if (isset($element['#required'])) {
-
     $element['#required'] = FALSE;
     $element['#element_validate'] = array();
-
-  } // if
-
+  }
   $children = element_children($element);
-
   if ($children) {
-
     foreach ($children as $child) {
       bulk_photo_nodes_recursive_set_optional($element[$child]);
-    } // foreach
-
-  } // if
-
+    }
+  }
 }
 
 /**
@@ -616,28 +585,23 @@ function bulk_photo_nodes_is_required(&$element) {
   if (!$element) {
     return FALSE;
   }
-
   if (isset($element['#required']) && $element['#required']) {
     return TRUE;
-  } // if
-
+  }
   $children = element_children($element);
-
   if ($children) {
-
     foreach ($children as $child) {
-
       if (bulk_photo_nodes_is_required($element[$child])) {
         return TRUE;
-      } // if
-
-    } // foreach
-
-  } // if
-
+      }
+    }
+  }
   return FALSE;
 }
 
+/**
+ * Validates taxonomy autocomplete terms.
+ */
 function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
   $value = array();
   if ($tags = $element['#value']) {
@@ -668,22 +632,81 @@ function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
           'vocabulary_machine_name' => $vocabulary->machine_name,
         );
       }
-      $value[] = (array)$term;
+      $value[] = (array) $term;
     }
   }
   form_set_value($element, $value, $form_state);
 }
 
+/**
+ * Validates selected taxonomy terms.
+ */
 function bpn_taxonomy_validate(&$element, &$form_state) {
-  if($element['#value'] !== '_none') {
+  if ($element['#value'] !== '_none') {
     $term = array(
       0 => array(
         'tid' => $element['#value'],
-      )
+      ),
     );
   }
   else {
     $term = 0;
   }
   form_set_value($element, $term, $form_state);
+}
+
+/**
+ * Checks if a given field form element has a value.
+ *
+ * @param string $field_name
+ *   The name of the field to check.
+ *
+ * @param object $node
+ *   The node object to check values against.
+ *
+ * @return bool
+ *   TRUE if the field has a value, otherwise FALSE.
+ */
+function bulk_photo_nodes_check_field_empty($field_name, $node) {
+  $field_info = field_info_field($field_name);
+  $empty_function = $field_info['module'] . '_field_is_empty';
+  $field_has_value = FALSE;
+  if (function_exists($empty_function)) {
+    $field_items = field_get_items('node', $node, $field_name);
+    if (is_array($field_items)) {
+      // Multi-value field.
+      foreach ($field_items as $item) {
+        if (!$empty_function($item, $field_name)) {
+          $field_has_value = TRUE;
+        }
+      }
+    }
+    elseif (!is_array($field_items) && !empty($field_items)) {
+      // String/numeric value.
+      if (!$empty_function($field_items, $field_name)) {
+        $field_has_value = TRUE;
+      }
+      else {
+        $field_has_value = FALSE;
+      }
+    }
+  }
+  return $field_has_value;
+}
+
+/**
+ * Sets and returns the current form step form id.
+ *
+ * @param string $chosen_form
+ *   The form ID of the current step.
+ *
+ * @return string
+ *   The form ID of the current step.
+ */
+function bulk_photo_nodes_chosen_form($chosen_form = NULL) {
+  $form_id = &drupal_static(__FUNCTION__);
+  if (isset($chosen_form)) {
+    $form_id = $chosen_form;
+  }
+  return $form_id;
 }
