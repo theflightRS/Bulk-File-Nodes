@@ -62,18 +62,13 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
     '#markup' => '<h3>' . t('Upload Images from your Flickr Account') . '</h3>',
   );
   if ($authenticated) {
-
-    // $form['flickr_private']['username'] = array(
-    //   '#type' => 'textfield',
-    //   '#title' => t('Username'),
-    //   '#description' => t('Enter the username to request images from.'),
-    // );
     $form['flickr_private']['username'] = array(
       '#markup' => '<p>' . t('Authenticate with your Flickr account.') . '</p>',
     );
+    $value = (bpn_flickr_private_get_api()) ? t('Next') : t('Authenticate');
     $form['flickr_private']['next'] = array(
       '#type' => 'submit',
-      '#value' => t('Authenticate'),
+      '#value' => $value,
     );
     $form['#submit'][] = 'bpn_flickr_private_form_step_1_submit';
   }
@@ -87,11 +82,8 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
  * This will bump the user on over to Flickr to authenticate them.
  */
 function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
-
   global $user;
-
   module_load_include('module', 'oauth_common');
-
   $callback = url('bulk_photo_nodes/auth', array('absolute' => TRUE));
 
   // redirect to flickr authentication
@@ -127,7 +119,6 @@ function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
       ),
     )
   );
-
   // Send the user to the Flickr page which redirects
   // back to the Drupal site after accepting.
   drupal_goto($auth_url);
@@ -194,7 +185,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
   $form['photo_container_selector']['update'] = array(
     '#type' => 'submit',
     '#value' => 'Update',
-    '#submit' => array('bpn_flickr_photos_state', 'bpn_flickr_update_photos'),
+    '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_update_photos'),
   );
   $form['photo_container_photos']['photostream'] = array(
     '#attributes' => array(
@@ -229,7 +220,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
       $form['flickr_pager']['flickr_prev'] = array(
         '#type' => 'submit',
         '#value' => 'Previous Page',
-        '#submit' => array('bpn_flickr_photos_state','flickr_pager_prev'),
+        '#submit' => array('bpn_flickr_private_photos_state','bpn_flickr_private_pager_prev'),
       );
       $form['flickr_pager']['pager_text'] = array(
         '#preix' => '<span>',
@@ -243,7 +234,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
       $form['flickr_pager']['flickr_next'] = array(
         '#type' => 'submit',
         '#value' => 'Next Page',
-        '#submit' => array('bpn_flickr_photos_state', 'flickr_pager_next'),
+        '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_pager_next'),
       );
     }
     foreach ($photos as $key => $photo) {
@@ -267,7 +258,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
     '#suffix' => '</div>',
   );
   $form['#submit'] = array(
-    'bpn_flickr_photos_state', 'bpn_flickr_form_step_2_submit',
+    'bpn_flickr_private_photos_state', 'bpn_flickr_private_form_step_2_submit',
   );
 
   $form['#attributes'] = array(
@@ -487,11 +478,11 @@ function bpn_flickr_private_photos_state($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
-function flickr_private_pager_next($form, &$form_state) {
+function bpn_flickr_private_pager_next($form, &$form_state) {
   $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] + 1;
 }
 
-function flickr_private_pager_prev($form, &$form_state) {
+function bpn_flickr_private_pager_prev($form, &$form_state) {
   $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] - 1;
 }
 
