@@ -366,6 +366,24 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
           if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
             bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right']['node'][$field_name]);
           }
+          if ($field_name == 'body') {
+            if (bulk_photo_nodes_is_required($form['nodes'][$key]['right'][$field_name])) {
+              bulk_photo_nodes_recursive_set_optional($form['nodes'][$key]['right'][$field_name]);
+            }
+          }
+        }
+      }
+      else {
+        // Field is empty.
+        foreach (element_children($form['nodes']) as $key) {
+          if (bulk_photo_nodes_is_required($form['nodes'][$key]['right']['node'][$field_name])) {
+            bulk_photo_nodes_recursive_set_required($form['nodes'][$key]['right']['node'][$field_name]);
+          }
+          if ($field_name == 'body') {
+            if (bulk_photo_nodes_is_required($form['nodes'][$key]['right'][$field_name])) {
+              bulk_photo_nodes_recursive_set_required($form['nodes'][$key]['right'][$field_name]);
+            }
+          }
         }
       }
     }
@@ -571,6 +589,27 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
   if ($children) {
     foreach ($children as $child) {
       bulk_photo_nodes_recursive_set_optional($element[$child]);
+    }
+  }
+}
+
+/**
+ * Sets the #required to FALSE recurvisely to all elements of a form.
+ *
+ * @param array $element
+ *   The first element to recursively set #required = FALSE.
+ */
+function bulk_photo_nodes_recursive_set_required(&$element) {
+  if (!$element) {
+    return;
+  }
+  if (isset($element['#required'])) {
+    $element['#required'] = TRUE;
+  }
+  $children = element_children($element);
+  if ($children) {
+    foreach ($children as $child) {
+      bulk_photo_nodes_recursive_set_required($element[$child]);
     }
   }
 }
