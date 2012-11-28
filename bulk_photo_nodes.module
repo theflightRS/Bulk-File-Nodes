@@ -338,9 +338,15 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   );
   $form['override_fields']['fields']['title_display'] = array(
     '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
-    '#weight' => -10,
+    '#weight' => -11,
   );
   field_attach_form('node', $node, $form['override_fields']['fields'], $form_state);
+  $form['override_fields']['fields']['title'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Title',
+    '#required' => FALSE,
+    '#weight' => 1,
+  );
   unset($form['override_fields']['fields'][$image_field]);
   $form['override_fields']['finish'] = array(
     '#type' => 'submit',
@@ -473,8 +479,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
 
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
-    if ($field_name == $image_field_name || $field_name == 'title') {
-      // Skip the title form item.
+    if ($field_name == $image_field_name) {
       continue;
     }
     $field_info = field_info_field($field_name);
@@ -538,11 +543,20 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     foreach (element_children($element) as $child) {
       bulk_photo_nodes_recursive_ajax($element[$child]);
     }
-    $element['#ajax'] = array(
-      'wrapper' => 'bpn-nodes',
-      'callback' => 'bulk_photo_nodes_add_form_ajax',
-      'method' => 'replace',
-    );
+    if (isset($element['#ajax']) && is_array($element['#ajax'])) {
+      $element['#ajax'][] = array(
+        'wrapper' => 'bpn-nodes',
+        'callback' => 'bulk_photo_nodes_add_form_ajax',
+        'method' => 'replace',
+      );
+    }
+    else {
+      $element['#ajax'] = array(
+        'wrapper' => 'bpn-nodes',
+        'callback' => 'bulk_photo_nodes_add_form_ajax',
+        'method' => 'replace',
+      );
+    }
     if (!empty($element['#autocomplete_path'])) {
       $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
     }
