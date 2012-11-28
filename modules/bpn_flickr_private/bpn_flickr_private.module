@@ -203,7 +203,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
   $page = (empty($form_state['flickr_page'])) ? 1 : $form_state['flickr_page'];
   $photo_set = (empty($form_state['photo_set'])) ? 'photostream' : $form_state['photo_set'];
   if ($photo_set == 'photostream') {
-    $photos_response = bpn_flickr_private_get_photos($user, $page);
+    $photos_response = bpn_flickr_private_get_photos($page);
     $pages = $photos_response['photos']['pages'];
     $photos = $photos_response['photos']['photo'];
   }
