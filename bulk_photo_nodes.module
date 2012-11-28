@@ -512,6 +512,10 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
     }
   }
   drupal_alter('bulk_photo_nodes_node', $node, $node_fields, $node_overrides);
+  if (!isset($node->path)) {
+    $node->path = array();
+  }
+  $node->path['pathauto'] = TRUE;
   node_save($node);
   return (!empty($node->nid)) ? TRUE : FALSE;
 }
