@@ -200,18 +200,21 @@ function bulk_photo_nodes_is_bpn_add_page($node_type) {
  */
 function bulk_photo_nodes_add_form($form, &$form_state) {
   bulk_photo_nodes_chosen_form('bulk_photo_nodes_add_form');
-  drupal_set_title(t('Bulk Add Info'));
+  drupal_set_title(t('Add Description(s)'));
 
   $form = array();
   $form['#bpn_chosen_form'] = array(
     '#type' => 'value',
     '#value' => TRUE,
   );
+  $form['#attributes'] = array(
+    'class' => array('bpn-enabled'),
+  );
   $form['nodes'] = array(
     '#tree' => TRUE,
     '#type' => 'fieldset',
     '#collapsed' => FALSE,
-    '#prefix' => '<div id="bpn-nodes">',
+    '#prefix' => '<div id="bpn-nodes">' . '<p class="bpn-inline-help"><em>' . t('To apply the same descriptions to all photos, use Batch Settings on the right') . '<p></em>',
     '#suffix' => '</div>',
     '#attributes' => array(
       'class' => array(
@@ -279,7 +282,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     );
     $form['nodes'][$key]['right']['node'] = array(
       '#type' => 'fieldset',
-      '#title' => 'Edit Additional Info',
+      '#title' => t('Edit Additional Information'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#parents' => array(
@@ -337,7 +340,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     ),
   );
   $form['override_fields']['fields']['title_display'] = array(
-    '#markup' => '<h2>Bulk Settings</h2><p>(applies to all photos, unless overridden)</p>',
+    '#markup' => '<h2>Batch Settings</h2><p>(applies to all photos, unless overridden)</p>',
     '#weight' => -11,
   );
   field_attach_form('node', $node, $form['override_fields']['fields'], $form_state);
@@ -350,7 +353,7 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   unset($form['override_fields']['fields'][$image_field]);
   $form['override_fields']['finish'] = array(
     '#type' => 'submit',
-    '#value' => t('Finish'),
+    '#value' => t('Complete Upload'),
     '#submit' => array('bulk_photo_nodes_add_form_submit'),
     // '#validate' => array('bulk_photo_nodes_add_form_validate')
   );
