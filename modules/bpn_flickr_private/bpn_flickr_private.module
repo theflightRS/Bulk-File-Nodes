@@ -220,11 +220,13 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
         '#tree' => TRUE,
         '#weight' => -1,
       );
-      $form['flickr_pager']['flickr_prev'] = array(
-        '#type' => 'submit',
-        '#value' => 'Previous Page',
-        '#submit' => array('bpn_flickr_private_photos_state','bpn_flickr_private_pager_prev'),
-      );
+      if ($page != 1) {
+        $form['flickr_pager']['flickr_prev'] = array(
+          '#type' => 'submit',
+          '#value' => 'Previous Page',
+          '#submit' => array('bpn_flickr_private_photos_state','bpn_flickr_private_pager_prev'),
+        );
+      }
       $form['flickr_pager']['pager_text'] = array(
         '#preix' => '<span>',
         '#markup' => "Page $page of " . $pages,
@@ -234,11 +236,13 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
         '#type' => 'value',
         '#value' => $page,
       );
-      $form['flickr_pager']['flickr_next'] = array(
-        '#type' => 'submit',
-        '#value' => 'Next Page',
-        '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_pager_next'),
-      );
+      if ($page != $pages) {
+        $form['flickr_pager']['flickr_next'] = array(
+          '#type' => 'submit',
+          '#value' => 'Next Page',
+          '#submit' => array('bpn_flickr_private_photos_state', 'bpn_flickr_private_pager_next'),
+        );
+      }
     }
     foreach ($photos as $key => $photo) {
       $id = $photo['id'];
