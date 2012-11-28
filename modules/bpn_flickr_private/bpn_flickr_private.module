@@ -59,7 +59,7 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
   if ($authenticated) {
     if(!bpn_flickr_private_get_api()) {
       $form['flickr_private']['username'] = array(
-        '#markup' => '<p>' . t('Authenticate with your Flickr account.') . '</p>',
+        '#markup' => '<div class="description">' . t('Authenticate with your Flickr account.') . '</div>',
       );
     }
     $value = (bpn_flickr_private_get_api()) ? t('Next') : t('Authenticate');
@@ -67,6 +67,11 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
       '#type' => 'submit',
       '#value' => $value,
     );
+    if(bpn_flickr_private_get_api()) {
+          $form['flickr_private']['username'] = array(
+        '#markup' => '<div class="description">' . t('Select image(s) on next page') . '</div>',
+      );
+    }
     $form['#submit'][] = 'bpn_flickr_private_form_step_1_submit';
   }
 
