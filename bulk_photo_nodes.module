@@ -477,6 +477,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
   $images_count = db_query($query_string, array(
     ':node_type' => $node_type, ':uid' => $image_field->uid,
   ))->fetchField();
+  $images_count++;
   $destination = $options['scheme'] . $options['directory'] . $image_field->uid . '-' . $images_count . '.' . $extension;
   file_move($image_field, $destination);
 
