@@ -158,7 +158,7 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
   );
 
   // get photosets
-  $sets = bpn_flickr_private_get_sets($user);
+  $sets = bpn_flickr_private_get_sets();
   $photosets = array();
   if (!empty($sets)) {
     foreach ($sets['photoset'] as $photoset) {
@@ -288,9 +288,9 @@ function bpn_flickr_private_form_step_2_submit($form, &$form_state) {
   extract($options);
   $saved_files = array();
   foreach ($form_state['checked_photos'] as $key => $flickr_id) {
-    $flickr_sizes = bpn_flickr_get_photo($flickr_id);
-    $extra_info = bpn_flickr_get_info($flickr_id);
-    $exif_data = bpn_flickr_get_exif($flickr_id);
+    $flickr_sizes = bpn_flickr_private_get_photo($flickr_id);
+    $extra_info = bpn_flickr_private_get_info($flickr_id);
+    $exif_data = bpn_flickr_private_get_exif($flickr_id);
     $largest_size = count($flickr_sizes) - 1;
     // Get URL to download  image from.
     $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
@@ -475,6 +475,21 @@ function bpn_flickr_private_get_photos($page = 1) {
   return $flickr->people_getPhotos('me', $options);
 }
 
+/**
+ * Get information from a photo on flickr.
+ */
+function bpn_flickr_private_get_info($photo_id) {
+  $flickr = bpn_flickr_private_get_api();
+  return $flickr->photos_getInfo($photo_id);
+}
+
+/**
+ * Get information from a photo on flickr.
+ */
+function bpn_flickr_private_get_exif($photo_id) {
+  $flickr = bpn_flickr_private_get_api();
+  return $flickr->photos_getExif($photo_id);
+}
 /**
  * Get information from a photo on flickr.
  */
