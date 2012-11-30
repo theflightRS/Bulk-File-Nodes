@@ -486,24 +486,29 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
     if ($field_name == $image_field_name) {
       continue;
     }
-    $field_info = field_info_field($field_name);
-    // Check if field is empty.
-    $empty_function = $field_info['module'] . '_field_is_empty';
-    $is_empty = TRUE;
-    if (function_exists($empty_function)) {
-      $items = field_get_items('node', $node, $field_name);
-      if (is_array($items)) {
-        foreach ($items as $item) {
-          if (!$empty_function($item, $field_name)) {
+    if ($field_name != 'title') {
+      $field_info = field_info_field($field_name);
+      // Check if field is empty.
+      $empty_function = $field_info['module'] . '_field_is_empty';
+      $is_empty = TRUE;
+      if (function_exists($empty_function)) {
+        $items = field_get_items('node', $node, $field_name);
+        if (is_array($items)) {
+          foreach ($items as $item) {
+            if (!$empty_function($item, $field_name)) {
+              $is_empty = FALSE;
+            }
+          }
+        }
+        elseif (!is_array($items) && !empty($items)) {
+          if (!$empty_function($items, $field_name)) {
             $is_empty = FALSE;
           }
         }
       }
-      elseif (!is_array($items) && !empty($items)) {
-        if (!$empty_function($items, $field_name)) {
-          $is_empty = FALSE;
-        }
-      }
+    }
+    else {
+      $is_empty = empty($field_values);
     }
     if ($is_empty) {
       $node->$field_name = $node_overrides[$field_name];
