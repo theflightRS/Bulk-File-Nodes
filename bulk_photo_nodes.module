@@ -553,6 +553,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     }
     if (isset($element['#ajax']) && is_array($element['#ajax'])) {
       $element['#ajax'][] = array(
+        'event' => 'change',
         'wrapper' => 'bpn-nodes',
         'callback' => 'bulk_photo_nodes_add_form_ajax',
         'method' => 'replace',
@@ -560,6 +561,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     }
     else {
       $element['#ajax'] = array(
+        'event' => 'change',
         'wrapper' => 'bpn-nodes',
         'callback' => 'bulk_photo_nodes_add_form_ajax',
         'method' => 'replace',
@@ -576,6 +578,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
   }
   else {
     $element['#ajax'] = array(
+      'event' => 'change',
       'wrapper' => 'bpn-nodes',
       'callback' => 'bulk_photo_nodes_add_form_ajax',
       'method' => 'replace',
