@@ -66,8 +66,11 @@ function bpn_upload_form_step_1_submit($form, &$form_state) {
       $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
       $file = plupload_file_uri_to_object($destination);
       file_save($file);
+      if (function_exists('exif_read_data')) {
+        $extra_info = exif_read_data(drupal_realpath($destination));
+      }
       $form_state['saved_files'][] = array(
-        'extra_info' => FALSE,
+        'extra_info' => (!empty($extra_info)) ? $extra_info : FALSE,
         'file_object' => $file,
       );
     }
