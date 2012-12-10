@@ -478,8 +478,9 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
     ':node_type' => $node_type, ':uid' => $image_field->uid,
   ))->fetchField();
   $images_count++;
+  drupal_alter('bulk_photo_nodes_filename', $images_count);
   $destination = $options['scheme'] . $options['directory'] . $image_field->uid . '-' . $images_count . '.' . $extension;
-  file_move($image_field, $destination);
+  file_move($image_field, $destination, FILE_EXISTS_REPLACE);
 
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
