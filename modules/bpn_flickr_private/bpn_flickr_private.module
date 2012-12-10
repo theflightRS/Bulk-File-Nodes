@@ -291,6 +291,8 @@ function bpn_flickr_private_form_step_2_submit($form, &$form_state) {
     $flickr_sizes = bpn_flickr_private_get_photo($flickr_id);
     $extra_info = bpn_flickr_private_get_info($flickr_id);
     $largest_size = count($flickr_sizes) - 1;
+    $extra_info['photo']['exif_width'] = $flickr_sizes[$largest_size]['width'];
+    $extra_info['photo']['exif_height'] = $flickr_sizes[$largest_size]['height'];
     // Get URL to download  image from.
     $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
     $filename = substr($parsed_url['path'], strrpos($parsed_url['path'], '/') + 1);
