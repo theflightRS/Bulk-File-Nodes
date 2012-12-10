@@ -402,7 +402,6 @@ function _bpn_flickr_private_custom_post($url, $data) {
   $query->condition('t.uid', $user->uid);
 
   $result = $query->execute();
-  dpm($result);
 
   $token = DrupalOAuthToken::fromResult($result);
 
