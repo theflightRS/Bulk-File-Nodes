@@ -230,6 +230,7 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
   foreach ($form_state['checked_photos'] as $key => $flickr_id) {
     $flickr_sizes = bpn_flickr_get_photo($flickr_id);
     $extra_info = bpn_flickr_get_info($flickr_id);
+    $exif_data = bpn_flickr_get_exif($flickr_id);
     $largest_size = count($flickr_sizes) - 1;
     // Get URL to download  image from.
     $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
@@ -243,6 +244,7 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
     file_save($file_object);
     $form_state['saved_files'][] = array(
       'extra_info' => $extra_info['photo'],
+      'exif_data' => $exif_data['exif'],
       'file_object' => $file_object,
     );
   }
@@ -329,6 +331,14 @@ function bpn_flickr_get_photo($photo_id) {
 function bpn_flickr_get_info($photo_id) {
   $flickr = bpn_flickr_get_api();
   return $flickr->photos_getInfo($photo_id);
+}
+
+/**
+ * Get information from a photo on flickr.
+ */
+function bpn_flickr_get_exif($photo_id) {
+  $flickr = bpn_flickr_get_api();
+  return $flickr->photos_getExif($photo_id);
 }
 
 function bpn_flickr_photos_state($form, &$form_state) {
