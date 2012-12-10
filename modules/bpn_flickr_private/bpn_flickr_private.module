@@ -57,7 +57,8 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
     '#markup' => '<h3>' . t('Upload Images from your Flickr Account') . '</h3>',
   );
   if ($authenticated) {
-    if(!bpn_flickr_private_get_api()) {
+    $flickr_user = bpn_flickr_private_get_api();
+    if(!$flickr_user) {
       $form['flickr_private']['username'] = array(
         '#markup' => '<div class="description">' . t('Authenticate with your Flickr account.') . '</div>',
       );
@@ -68,8 +69,16 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
       '#value' => $value,
     );
     if(bpn_flickr_private_get_api()) {
-          $form['flickr_private']['username'] = array(
-        '#markup' => '<div class="description">' . t('Select image(s) on next page') . '</div>',
+      $flickr_username = bpn_flickr_private_test_login();
+      if (!empty($flickr_username['username'])) {
+        $form['flickr_private']['username'] = array(
+          '#markup' => '<div class="description">' . t('Authenticated as ') . $flickr_username['username'] . t('. Select image(s) on next page') . '</div>',
+        );
+      }
+      $form['flickr_private']['remove'] = array(
+        '#type' => 'submit',
+        '#value' => 'Authenticate as a new user',
+        '#submit' => array('bpn_flickr_private_disconnect'),
       );
     }
     $form['#submit'][] = 'bpn_flickr_private_form_step_1_submit';
@@ -81,14 +90,31 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
 /**
  * Submit handler for Flickr private step 1.
  *
+ * This will de-authenticate a user's Flickr account.
+ */
+function bpn_flickr_private_disconnect($form, &$form_state) {
+  bpn_flickr_private_oauth_new();
+  $form_state['step'] = 2;
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Submit handler for Flickr private step 1.
+ *
  * This will bump the user on over to Flickr to authenticate them.
  */
 function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
   if (bpn_flickr_private_get_api()) {
+    // If the user has already authenticated.
     $form_state['step'] = 2;
     $form_state['rebuild'] = TRUE;
   }
   else {
+    bpn_flickr_private_oauth_new();
+  }
+}
+
+function bpn_flickr_private_oauth_new() {
   global $user;
   module_load_include('module', 'oauth_common');
   $callback = url('bulk_photo_nodes/auth', array('absolute' => TRUE));
@@ -129,7 +155,6 @@ function bpn_flickr_private_form_step_1_submit($form, &$form_state) {
   // Send the user to the Flickr page which redirects
   // back to the Drupal site after accepting.
   drupal_goto($auth_url);
-  }
 }
 
 /**
@@ -377,6 +402,7 @@ function _bpn_flickr_private_custom_post($url, $data) {
   $query->condition('t.uid', $user->uid);
 
   $result = $query->execute();
+  dpm($result);
 
   $token = DrupalOAuthToken::fromResult($result);
 
@@ -429,12 +455,15 @@ function bpn_flickr_private_get_token() {
 
   $client = new DrupalOAuthClient($consumer, $request_token);
 
+  $num_deleted = db_delete('oauth_common_token')
+    ->condition('uid', $user->uid)
+    ->execute();
+
   $access_token = $client->getAccessToken('http://www.flickr.com/services/oauth/access_token', array(
     'verifier' => $oauth_verifier,
   ));
 
   $request_token->delete();
-
   $access_token->uid = $user->uid;
   $access_token->write();
 
@@ -484,7 +513,15 @@ function bpn_flickr_private_get_info($photo_id) {
 }
 
 /**
- * Get information from a photo on flickr.
+ * Get information for the authenticated user.
+ */
+function bpn_flickr_private_test_login() {
+  $flickr = bpn_flickr_private_get_api();
+  return $flickr->test_login();
+}
+
+/**
+ * Get sizes of a photo on flickr.
  */
 function bpn_flickr_private_get_photo($photo_id) {
   $flickr = bpn_flickr_private_get_api();
