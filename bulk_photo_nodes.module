@@ -203,6 +203,9 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   drupal_set_title(t('Add Description(s)'));
 
   $form = array();
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'bulk_photo_nodes') . '/js/bulk_photo_nodes.js',
+  );
   $form['#bpn_chosen_form'] = array(
     '#type' => 'value',
     '#value' => TRUE,
@@ -567,6 +570,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
         'wrapper' => 'bpn-nodes',
         'callback' => 'bulk_photo_nodes_add_form_ajax',
         'method' => 'replace',
+        'progress' => array('type' => 'none'),
       );
     }
     else {
@@ -575,6 +579,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
         'wrapper' => 'bpn-nodes',
         'callback' => 'bulk_photo_nodes_add_form_ajax',
         'method' => 'replace',
+        'progress' => array('type' => 'none'),
       );
     }
     if (!empty($element['#autocomplete_path'])) {
@@ -592,6 +597,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       'wrapper' => 'bpn-nodes',
       'callback' => 'bulk_photo_nodes_add_form_ajax',
       'method' => 'replace',
+      'progress' => array('type' => 'none'),
     );
     if (!empty($element['#autocomplete_path'])) {
       // Add custom validation for autocomplete taxonomy textfields.
