@@ -487,7 +487,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
   }
   $destination = $options['scheme'] . $image_field->uid . '-' . $images_count . '.' . $extension;
   $image_field->filename = $image_field->uid . '-' . $images_count . '.' . $extension;
-  file_move($image_field, $destination);
+  file_move($image_field, $destination, FILE_EXISTS_REPLACE);
 
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
