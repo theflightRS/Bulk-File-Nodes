@@ -482,7 +482,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
   ))->fetchField();
   $images_count++;
   drupal_alter('bulk_photo_nodes_filename', $images_count);
-  if($options['directory'] == '/') {
+  if ($options['directory'] == '/') {
     $options['directory'] = '';
   }
   $destination = $options['scheme'] . $image_field->uid . '-' . $images_count . '.' . $extension;

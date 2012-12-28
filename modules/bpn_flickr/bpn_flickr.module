@@ -1,5 +1,10 @@
 <?php
 /**
+ * @file
+ * Hooks and functions for the bpn_flickr module.
+ */
+
+/**
  * Implements hook_bpn_upload().
  *
  * Defines a multi-step form to use with bulk_photo_nodes.
@@ -8,6 +13,17 @@ function bpn_flickr_bulk_photo_nodes_method() {
   return 'bpn_flickr_form';
 }
 
+/**
+ * Form constructor for the multi-step flickr form.
+ *
+ * @param string $node_type
+ *   The content type of the node.
+ *
+ * @see bpn_flickr_form_step_1()
+ * @see bpn_flickr_form_step_2()
+ * @see bpn_flickr_form_step_3()
+ * @ingroup forms
+ */
 function bpn_flickr_form($form, &$form_state, $node_type) {
   if (empty($form_state['step'])) {
     $form_state['step'] = 1;
@@ -22,7 +38,10 @@ function bpn_flickr_form($form, &$form_state, $node_type) {
 /**
  * Form constrcutor for Step 1: Select flickr user.
  *
- * @see bpn_flickr_form_step_1_validate().
+ * @see bpn_flickr_form()
+ * @see bpn_flickr_form_step_1_validate()
+ * @see bpn_flickr_form_step_1_submit()
+ * @ingroup forms
  */
 function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr'] = array(
@@ -56,6 +75,8 @@ function bpn_flickr_form_step_1($form, &$form_state) {
 
 /**
  * Form validation handler for bpn_flickr_form_step_1().
+ *
+ * @see bpn_flickr_form_step_1_submit()
  */
 function bpn_flickr_form_step_1_validate($form, &$form_state) {
   $flickr = bpn_flickr_get_api();
@@ -66,20 +87,27 @@ function bpn_flickr_form_step_1_validate($form, &$form_state) {
 }
 
 /**
- * Form submission handler for bpn_flickr_form_step_2().
+ * Form submission handler for bpn_flickr_form_step_1().
+ *
+ * @see bpn_flickr_form_step_1_validate()
  */
 function bpn_flickr_form_step_1_submit($form, &$form_state) {
-
   $form_state['rebuild'] = TRUE;
   if (isset($form_state['values']['username']) && !empty($form_state['values']['username'])) {
     $form_state['flickr_username'] = $form_state['values']['username'];
     $form_state['step'] = 2;
   }
-
 }
 
 /**
  * Form constructor for Step 2: Pick what images to load.
+ *
+ * @see flickr_pager_prev()
+ * @see flickr_pager_next()
+ * @see bpn_flickr_photos_state()
+ * @see bpn_flickr_update_photos()
+ * @see bpn_flickr_form_step_2_submit()
+ * @ingroup forms
  */
 function bpn_flickr_form_step_2($form, &$form_state) {
   $form['#bpn_chosen_form'] = array(
@@ -91,11 +119,11 @@ function bpn_flickr_form_step_2($form, &$form_state) {
     '#tree' => TRUE,
     '#weight' => -2,
   );
-  // flickr options
+  // Flickr options.
   $flickr = bpn_flickr_get_api();
   $user = bpn_flickr_get_user($form_state['flickr_username']);
 
-  // get photosets
+  // Get photosets.
   $sets = bpn_flickr_get_sets($user);
   $photosets = array();
   if (!empty($sets)) {
@@ -222,6 +250,70 @@ function bpn_flickr_form_step_2($form, &$form_state) {
 
 /**
  * Form submission handler for bpn_flickr_form_step_2().
+ *
+ * @see flickr_pager_next()
+ * @see bpn_flickr_update_photos()
+ * @see bpn_flickr_photos_state()
+ * @see bpn_flickr_form_step_2_submit()
+ */
+function flickr_pager_prev($form, &$form_state) {
+  $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] - 1;
+}
+
+/**
+ * Form submission handler for bpn_flickr_form_step_2().
+ *
+ * @see flickr_pager_prev()
+ * @see bpn_flickr_update_photos()
+ * @see bpn_flickr_photos_state()
+ * @see bpn_flickr_form_step_2_submit()
+ */
+function flickr_pager_next($form, &$form_state) {
+  $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] + 1;
+}
+
+/**
+ * Form submission handler for bpn_flickr_form_step_2().
+ *
+ * @see flickr_pager_prev()
+ * @see flickr_pager_next()
+ * @see bpn_flickr_update_photos()
+ * @see bpn_flickr_form_step_2_submit()
+ */
+function bpn_flickr_photos_state($form, &$form_state) {
+  if (empty($form_state['checked_photos'])) {
+    $form_state['checked_photos'] = array_keys($form_state['values']['photostream'], 1);
+  }
+  else {
+    $currently_checked = array_keys($form_state['values']['photostream'], 1);
+    $unique_merged = array_unique(array_merge($form_state['checked_photos'], $currently_checked));
+    $form_state['checked_photos'] = $unique_merged;
+  }
+  $form_state['num_photos_checked'] = count($form_state['checked_photos']);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Form submission handler for bpn_flickr_form_step_2().
+ *
+ * @see flickr_pager_prev()
+ * @see flickr_pager_next()
+ * @see bpn_flickr_photos_state()
+ * @see bpn_flickr_form_step_2_submit()
+ */
+function bpn_flickr_update_photos($form, &$form_state) {
+  $form_state['photo_set'] = $form_state['values']['photo_container_selector']['photo_container_type'];
+  $form_state['flickr_page'] = 1;
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Form submission handler for bpn_flickr_form_step_2().
+ *
+ * @see flickr_pager_prev()
+ * @see flickr_pager_next()
+ * @see bpn_flickr_photos_state()
+ * @see bpn_flickr_update_photos()
  */
 function bpn_flickr_form_step_2_submit($form, &$form_state) {
   $options = bulk_photo_nodes_get_file_info($form_state['node_type']);
@@ -252,13 +344,48 @@ function bpn_flickr_form_step_2_submit($form, &$form_state) {
   $form_state['step'] = 3;
 }
 
+/**
+ * Form constructor for Step 3: Add bulk info.
+ *
+ * @todo find a better way of doing this.
+ */
 function bpn_flickr_form_step_3($form, &$form_state) {
   return bulk_photo_nodes_add_form($form, $form_state);
 }
 
 /**
- * Get the Flickr API object for use in API calls
- * @return object The PHP Flickr object
+ * Returns a file object which can be passed to file_save().
+ *
+ * @param string $uri
+ *   a string containing the uri, path, or filename.
+ *
+ * @return stdClass
+ *   a file object, or false on error.
+ *
+ * @todo replace with calls to this function with file_uri_to_object() when
+ * http://drupal.org/node/685818 is fixed in core.
+ */
+function bpn_flickr_file_uri_to_object($uri) {
+  global $user;
+  $uri = file_stream_wrapper_uri_normalize($uri);
+  $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+  $file = new stdclass();
+  $file->uid = $user->uid;
+  $file->filename = basename($uri);
+  $file->uri = $uri;
+  $file->filemime = file_get_mimetype($uri);
+  // This is gagged because some uris will not support it.
+  $file->filesize = @filesize($uri);
+  $file->timestamp = REQUEST_TIME;
+  $file->status = 1;
+  return $file;
+}
+
+/**
+ * Gets the Flickr API object for use in API calls.
+ *
+ * @return object
+ *   The PHP Flickr object
  */
 function bpn_flickr_get_api() {
   $flickr = &drupal_static(__FUNCTION__);
@@ -269,7 +396,7 @@ function bpn_flickr_get_api() {
 }
 
 /**
- * Get the photosets for a user
+ * Gets the photosets for a user.
  */
 function bpn_flickr_get_sets($user) {
   $flickr = bpn_flickr_get_api();
@@ -277,7 +404,7 @@ function bpn_flickr_get_sets($user) {
 }
 
 /**
- * Wrapper for PHPFlickr::people_findByUsername
+ * Wraps PHPFlickr::people_findByUsername.
  */
 function bpn_flickr_get_user($username) {
   $flickr = bpn_flickr_get_api();
@@ -285,7 +412,7 @@ function bpn_flickr_get_user($username) {
 }
 
 /**
- * Get photos from a user's photostream.
+ * Gets photos from a user's photostream.
  */
 function bpn_flickr_get_set($set_id, $page = 1) {
   $flickr = bpn_flickr_get_api();
@@ -331,59 +458,4 @@ function bpn_flickr_get_photo($photo_id) {
 function bpn_flickr_get_info($photo_id) {
   $flickr = bpn_flickr_get_api();
   return $flickr->photos_getInfo($photo_id);
-}
-
-function bpn_flickr_photos_state($form, &$form_state) {
-  if (empty($form_state['checked_photos'])) {
-    $form_state['checked_photos'] = array_keys($form_state['values']['photostream'], 1);
-  }
-  else {
-    $currently_checked = array_keys($form_state['values']['photostream'], 1);
-    $unique_merged = array_unique(array_merge($form_state['checked_photos'], $currently_checked));
-    $form_state['checked_photos'] = $unique_merged;
-  }
-  $form_state['num_photos_checked'] = count($form_state['checked_photos']);
-  $form_state['rebuild'] = TRUE;
-}
-
-function flickr_pager_next($form, &$form_state) {
-  $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] + 1;
-}
-
-function flickr_pager_prev($form, &$form_state) {
-  $form_state['flickr_page'] = $form_state['values']['flickr_pager']['flickr_page'] - 1;
-}
-
-function bpn_flickr_update_photos($form, &$form_state) {
-  $form_state['photo_set'] = $form_state['values']['photo_container_selector']['photo_container_type'];
-  $form_state['flickr_page'] = 1;
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
- * Returns a file object which can be passed to file_save().
- *
- * @param string $uri
- *   a string containing the uri, path, or filename.
- *
- * @return stdClass
- *   a file object, or false on error.
- *
- * @todo replace with calls to this function with file_uri_to_object() when
- * http://drupal.org/node/685818 is fixed in core.
- */
-function bpn_flickr_file_uri_to_object($uri) {
-  global $user;
-  $uri = file_stream_wrapper_uri_normalize($uri);
-  $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
-  $file = new stdclass;
-  $file->uid = $user->uid;
-  $file->filename = basename($uri);
-  $file->uri = $uri;
-  $file->filemime = file_get_mimetype($uri);
-  // this is gagged because some uris will not support it.
-  $file->filesize = @filesize($uri);
-  $file->timestamp = REQUEST_TIME;
-  $file->status = 1;
-  return $file;
 }

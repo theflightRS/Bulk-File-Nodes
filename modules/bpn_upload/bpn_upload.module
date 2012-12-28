@@ -1,5 +1,10 @@
 <?php
 /**
+ * @file
+ * Hooks and functions for the bpn_upload module.
+ */
+
+/**
  * Implements hook_bpn_upload().
  *
  * Defines a multi-step form to use with bulk_photo_nodes.
@@ -11,6 +16,9 @@ function bpn_upload_bulk_photo_nodes_method() {
 /**
  * Form constructor multi-step bulk photo nodes.
  *
+ * @see bpn_upload_form_step_1()
+ * @see bpn_upload_form_step_1_submit()
+ * @see bpn_upload_form_step_2()
  * @ingroup forms
  */
 function bpn_upload_form($form, &$form_state, $node_type) {
@@ -54,7 +62,7 @@ function bpn_upload_form_step_1($form, &$form_state) {
 }
 
 /**
- * Form submissions handler for bpn_upload_form_step_1().
+ * Form submission handler for bpn_upload_form_step_1().
  */
 function bpn_upload_form_step_1_submit($form, &$form_state) {
   $node_type = $form_state['node_type'];
@@ -82,6 +90,13 @@ function bpn_upload_form_step_1_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
+/**
+ * Form constructor for step two of bpn_upload_form().
+ *
+ * @see bpn_upload_form_step_1()
+ * @see bpn_upload_form_step_1_submit()
+ * @todo find a better way of transfering form state.
+ */
 function bpn_upload_form_step_2($form, &$form_state) {
   return bulk_photo_nodes_add_form($form, $form_state);
 }
