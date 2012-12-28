@@ -1,0 +1,27 @@
+<?php
+/**
+ * @file
+ * Tests for the bulk_photo_nodes module.
+ */
+class BulkPhotoNodesTestCase extends DrupalWebTestCase {
+  protected $privileged_user;
+
+  public function setUp() {
+    parent::setUp('bulk_photo_nodes');
+    $this->privileged_user = $this->drupalCreateUser(array('administer content types',));
+    $this->drupalLogin($this->privileged_user);
+  }
+  public static function getInfo() {
+    return array(
+      'name' => 'Bulk Photo Nodes functionality',
+      'description' => 'Tests bulk_photo_nodes content type form.',
+      'group' => 'BulkPhotoNodes',
+    );
+  }
+  public function testContentTypesSave() {
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->assertText('Bulk Photo Node Settings', 'Bulk Photo Nodes Settings is on content type form');
+    $options = $this->xpath("id('edit-bulk-photo-nodes')//option");
+    $this->assertTrue(count($options) === 1, "There are no image options for a content type without an image field");
+  }
+}
