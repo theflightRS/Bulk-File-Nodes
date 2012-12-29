@@ -70,6 +70,7 @@ function bulk_photo_nodes_submit($form, &$form_state) {
       $bpn_var[$node_type] = $image_field;
     }
     variable_set('bulk_photo_node_types', $bpn_var);
+    menu_rebuild();
     drupal_set_message("Bulk photo node settings saved.");
   }
 }
