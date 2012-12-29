@@ -23,5 +23,17 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
     $this->assertText('Bulk Photo Node Settings', 'Bulk Photo Nodes Settings is on content type form');
     $options = $this->xpath("id('edit-bulk-photo-nodes')//option");
     $this->assertTrue(count($options) === 1, "There are no image options for a content type without an image field");
+    $type = $this->drupalCreateContentType();
+    $edit = array(
+      'fields[_add_new_field][field_name]' => 'bulk_photo_nodes',
+      'fields[_add_new_field][label]' => 'bulk_photo_nodes',
+      'fields[_add_new_field][type]' => 'image',
+      'fields[_add_new_field][widget_type]' => 'image_image',
+    );
+    $this->drupalPost("admin/structure/types/manage/{$type->name}/fields", $edit, t('Save'));
+    $this->drupalGet("admin/structure/types/manage/{$type->name}");
+    $this->assertText('Bulk Photo Node Settings', 'Bulk Photo Nodes Settings is on content type form');
+    $options = $this->xpath("id('edit-bulk-photo-nodes')//option");
+    $this->assertTrue(count($options) === 2, "There are image options for a content type with an image field");
   }
 }
