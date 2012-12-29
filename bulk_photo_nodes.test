@@ -8,9 +8,12 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
 
   public function setUp() {
     parent::setUp('bulk_photo_nodes');
-    $this->privileged_user = $this->drupalCreateUser(array('administer content types',));
+    $this->privileged_user = $this->drupalCreateUser(array(
+      'administer content types', 'administer nodes', 'bypass node access', 'create bulk photo nodes',
+    ));
     $this->drupalLogin($this->privileged_user);
   }
+
   public static function getInfo() {
     return array(
       'name' => 'Bulk Photo Nodes functionality',
@@ -18,9 +21,17 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
       'group' => 'BulkPhotoNodes',
     );
   }
+
+  /**
+   * Tests basic functionality of bulk_photo_nodes.module.
+   */
   public function testContentTypesSave() {
+    // Ensure the content type edit form is overridden.
     $this->drupalGet('admin/structure/types/manage/page');
     $this->assertText('Bulk Photo Node Settings', 'Bulk Photo Nodes Settings is on content type form');
+
+    // Ensure that only the 'none' option exists for content types without an
+    // image field.
     $options = $this->xpath("id('edit-bulk-photo-nodes')//option");
     $this->assertTrue(count($options) === 1, "There are no image options for a content type without an image field");
     $type = $this->drupalCreateContentType();
@@ -30,10 +41,26 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
       'fields[_add_new_field][type]' => 'image',
       'fields[_add_new_field][widget_type]' => 'image_image',
     );
+
+    // Ensure that having an image field on a content type will surface that
+    // field in the bulk photo node settings section of the content type edit
+    // form.
     $this->drupalPost("admin/structure/types/manage/{$type->name}/fields", $edit, t('Save'));
     $this->drupalGet("admin/structure/types/manage/{$type->name}");
-    $this->assertText('Bulk Photo Node Settings', 'Bulk Photo Nodes Settings is on content type form');
     $options = $this->xpath("id('edit-bulk-photo-nodes')//option");
-    $this->assertTrue(count($options) === 2, "There are image options for a content type with an image field");
+    $this->assertTrue(count($options) === 2, "There are image options for a content type with an image field.");
+    $this->assertTrue(($options[1]['value'] == 'field_bulk_photo_nodes'), 'Only image fields will show in content type form.');
+
+    // Ensure that after saving a content type to use bulk photo nodes, the node
+    // add form is overridden.
+    $edit = array(
+      'bulk_photo_nodes[image_field]' => 'field_bulk_photo_nodes',
+    );
+    $this->drupalPost("admin/structure/types/manage/{$type->name}", $edit, t('Save content type'));
+    $vars = variable_get('bulk_photo_node_types');
+    $this->assertTrue($vars[$type->name] == 'field_bulk_photo_nodes', "System variables saved after form submission.");
+    $this->drupalGet("admin/structure/types/manage/{$type->name}");
+    $this->drupalGet("node/add/{$type->name}");
+    $this->assertText('Upload Images', 'Bulk Photo Nodes successfully overriding node add form.');
   }
 }
