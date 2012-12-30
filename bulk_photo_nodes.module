@@ -359,7 +359,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('Complete Upload'),
     '#submit' => array('bulk_photo_nodes_add_form_submit'),
-    // '#validate' => array('bulk_photo_nodes_add_form_validate')
   );
 
   bulk_photo_nodes_recursive_set_optional($form['override_fields']['fields']);
