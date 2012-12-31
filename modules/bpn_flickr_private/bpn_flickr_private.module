@@ -326,33 +326,70 @@ function bpn_flickr_private_form_step_2($form, &$form_state) {
  * Form submission handler for bpn_flickr_private_form_step_2().
  */
 function bpn_flickr_private_form_step_2_submit($form, &$form_state) {
-  $options = bulk_photo_nodes_get_file_info($form_state['node_type']);
-  extract($options);
-  $saved_files = array();
+  $operations = array();
   foreach ($form_state['checked_photos'] as $key => $flickr_id) {
-    $flickr_sizes = bpn_flickr_private_get_photo($flickr_id);
-    $extra_info = bpn_flickr_private_get_info($flickr_id);
-    $largest_size = count($flickr_sizes) - 1;
-    $extra_info['photo']['exif_width'] = $flickr_sizes[$largest_size]['width'];
-    $extra_info['photo']['exif_height'] = $flickr_sizes[$largest_size]['height'];
-    // Get URL to download  image from.
-    $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
-    $filename = substr($parsed_url['path'], strrpos($parsed_url['path'], '/') + 1);
-    // Request and save the image.
-    $downloaded_file = drupal_http_request($flickr_sizes[$largest_size]['source']);
-    $destination_uri = file_stream_wrapper_uri_normalize('public://' . $filename);
-    $file_uri = file_unmanaged_save_data($downloaded_file->data, $destination_uri);
-    // Convert the saved file to a file object.
-    $file_object = bpn_flickr_file_uri_to_object($file_uri);
-    file_save($file_object);
-    $form_state['saved_files'][] = array(
-      'extra_info' => $extra_info['photo'],
-      'file_object' => $file_object,
+    $operations[] = array(
+      'bpn_flickr_download_photos',
+      array($flickr_id),
     );
   }
-  $form_state['rebuild'] = TRUE;
+  $batch = array(
+    'title' => t('Importing photos from flickr.'),
+    'finished' => 'bpn_flickr_private_batch_finished',
+    'operations' => $operations,
+  );
+  batch_set($batch);
   $form_state['step'] = 3;
+  $form_state['rebuild'] = TRUE;
+}
+/**
+ * Batch finished callback used by bpn_flickr_private_form_step_2_submit().
+ */
+function bpn_flickr_private_batch_finished($success, $results, $operations) {
+  if ($success) {
+    drupal_set_message(t('@count Photos imported.', array('@count' => count($results))));
+  }
+  else {
+    $error_operation = reset($operations);
+    drupal_set_message(t('An error occurred while processing @operation with arguments : @args', array(
+      '@operation' => $error_operation[0], '@args' => print_r($error_operation[0], TRUE),
+    )));
+  }
+  $_SESSION['saved_files'] = $results;
+}
 
+/**
+ * Batch operation: Downloads a single image from flickr.
+ *
+ * Downloads the largest image size available to the public files directory.
+ * Also fetches extra information about the image, such as size, date taken,
+ * etc.
+ *
+ * @param string $flickr_id
+ *   The flickr id of the image.
+ */
+function bpn_flickr_private_download_photos($flickr_id, &$context) {
+  // Set batch message.
+  $context['message'] = t('Importing image with flickr id: "@id"', array('@id' => $flickr_id));
+  $flickr_sizes = bpn_flickr_private_get_photo($flickr_id);
+  $extra_info = bpn_flickr_private_get_info($flickr_id);
+  $largest_size = count($flickr_sizes) - 1;
+  $extra_info['photo']['exif_width'] = $flickr_sizes[$largest_size]['width'];
+  $extra_info['photo']['exif_height'] = $flickr_sizes[$largest_size]['height'];
+  // Get URL to download  image from.
+  $parsed_url = parse_url($flickr_sizes[$largest_size]['source']);
+  $filename = substr($parsed_url['path'], strrpos($parsed_url['path'], '/') + 1);
+  // Request and save the image.
+  $downloaded_file = drupal_http_request($flickr_sizes[$largest_size]['source']);
+  $destination_uri = file_stream_wrapper_uri_normalize('public://' . $filename);
+  $file_uri = file_unmanaged_save_data($downloaded_file->data, $destination_uri);
+  // Convert the saved file to a file object.
+  $file_object = bpn_flickr_file_uri_to_object($file_uri);
+  file_save($file_object);
+  $context['results'][] = array(
+    'extra_info' => $extra_info['photo'],
+    'file_object' => $file_object,
+  );
 }
 
 /**
