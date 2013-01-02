@@ -110,6 +110,14 @@ function bpn_flickr_form_step_1_submit($form, &$form_state) {
  * @ingroup forms
  */
 function bpn_flickr_form_step_2($form, &$form_state) {
+  $form['#attached'] = array(
+    'js' => array(
+      drupal_get_path('module', 'bpn_flickr') . '/js/bpn_flickr.js',
+    ),
+    'css' => array(
+      drupal_get_path('module', 'bpn_flickr') . '/css/bpn_flickr.css',
+    ),
+  );
   $form['#bpn_chosen_form'] = array(
     '#type' => 'value',
     '#value' => TRUE,
@@ -150,11 +158,6 @@ function bpn_flickr_form_step_2($form, &$form_state) {
 
   $form['photo_container_selector']['stats'] = array(
     '#markup' => '<div class="bpn-flickr-selected-count">' . t('Photos selected:') . ' <span class="bpn-flickr-count">' . $count . '</span></div>',
-    '#attached' => array(
-      'js' => array(
-        drupal_get_path('module', 'bpn_flickr') . '/js/bpn_flickr.js',
-      ),
-    ),
   );
   $form['photo_container_selector']['update'] = array(
     '#type' => 'submit',
