@@ -5,6 +5,17 @@
  */
 
 /**
+ * Implements hook_permission().
+ */
+function bpn_flickr_permission() {
+  return array(
+    'use bpn_flickr module' =>  array(
+      'title' => t('Create public flickr bulk photo nodes'),
+    ),
+  );
+}
+
+/**
  * Implements hook_bpn_upload().
  *
  * Defines a multi-step form to use with bulk_photo_nodes.
@@ -44,6 +55,9 @@ function bpn_flickr_form($form, &$form_state, $node_type) {
  * @ingroup forms
  */
 function bpn_flickr_form_step_1($form, &$form_state) {
+  if (!user_access('use bpn_flickr module')) {
+    return array();
+  }
   $form['flickr'] = array(
     '#prefix' => '<div class="bpn-upload-option">' . t('OR') . '</div><div class="bpn-flickr">',
     '#suffix' => '</div>',
