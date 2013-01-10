@@ -45,8 +45,8 @@ function bpn_flickr_form($form, &$form_state, $node_type) {
  */
 function bpn_flickr_form_step_1($form, &$form_state) {
   $form['flickr'] = array(
-    '#prefix' => '<div class="bpn-flickr">',
-    '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
+    '#prefix' => '<div class="bpn-upload-option">' . t('OR') . '</div><div class="bpn-flickr">',
+    '#suffix' => '</div>',
   );
   $form['flickr']['header'] = array(
     '#markup' => '<h3>' . t('Upload Public Images from Flickr') . '</h3>',

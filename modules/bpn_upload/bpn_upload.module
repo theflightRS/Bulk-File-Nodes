@@ -43,6 +43,7 @@ function bpn_upload_form($form, &$form_state, $node_type) {
  */
 function bpn_upload_form_step_1($form, &$form_state) {
   $form = array(
+    '#weight' => -1,
     'header' => array(
       '#markup' => '<h3>' . t('Upload Images From Your Computer') . '</h3>',
     ),

@@ -62,8 +62,8 @@ function bpn_flickr_private_form_step_1($form, &$form_state) {
   }
 
   $form['flickr_private'] = array(
-    '#prefix' => '<div class="bpn-flickr bpn-flickr-private">',
-    '#suffix' => '</div>' . '<div class="bpn-upload-option">' . t('OR') . '</div>',
+    '#prefix' =>  '<div class="bpn-upload-option">' . t('OR') . '</div><div class="bpn-flickr bpn-flickr-private">',
+    '#suffix' => '</div>',
   );
 
   $form['flickr_private']['header'] = array(
