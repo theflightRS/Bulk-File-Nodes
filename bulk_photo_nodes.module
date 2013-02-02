@@ -227,6 +227,11 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
     ),
   );
 
+  // Since importing files is optionally a batch operation, look in $_SESSION
+  // for a list of saved images.
+  if (!empty($_SESSION['saved_files'])) {
+    $form_state['saved_files'] = $_SESSION['saved_files'];
+  }
   foreach ($form_state['saved_files'] as $key => $file) {
     $extra_info = !empty($file['extra_info']) ? $file['extra_info'] : array();
     $vars = array(
@@ -403,7 +408,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
 
   drupal_alter('bulk_photo_nodes_overrides', $form, $form_state);
   return $form;
-
 }
 
 /**
@@ -423,15 +427,40 @@ function bulk_photo_nodes_add_form_submit($form, &$form_state) {
   $nodes =& $form_state['values']['nodes'];
   $node_overrides =& $form_state['values']['override_fields']['fields'];
   $node_count = 0;
+  $operations = array();
   foreach ($nodes as $key => $outer_node) {
-    if (bulk_photo_nodes_save_node($node_type, $outer_node, $node_overrides)) {
-      $node_count++;
-    }
+    $operations[] = array(
+      'bulk_photo_nodes_save_node',
+      array($node_type, $outer_node, $node_overrides),
+    );
   }
-  $image_style = image_style_load('bulk_photo_nodes');
-  image_style_flush($image_style);
-  watchdog('bulk_photo_nodes', "$node_count Photos saved successfully");
-  drupal_set_message("$node_count Photos saved successfully");
+  $batch = array(
+    'title' => t('Saving nodes'),
+    'finished' => 'bulk_photo_nodes_batch_finished',
+    'operations' => $operations,
+  );
+  batch_set($batch);
+}
+
+/**
+ * Batch 'finished' callback used by bulk_photo_nodes_add_form_submit().
+ */
+function bulk_photo_nodes_batch_finished($success, $results, $operations) {
+  if ($success) {
+    drupal_set_message(t('@count Photos saved.', array('@count' => count($results))));
+
+    // Delete old image style generated images.
+    $image_style = image_style_load('bulk_photo_nodes');
+    image_style_flush($image_style);
+  }
+  else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    drupal_set_message(t('An error occurred while processing @operation with arguments : @args', array(
+      '@operation' => $error_operation[0], '@args' => print_r($error_operation[0], TRUE),
+    )));
+  }
 }
 
 /**
@@ -446,7 +475,7 @@ function bulk_photo_nodes_delete_node($form, &$form_state) {
 }
 
 /**
- * Saves an individual bulk photo node.
+ * Batch operation: Saves an individual bulk photo node.
  *
  * @param string $node_type
  *   The content type of the node.
@@ -460,10 +489,14 @@ function bulk_photo_nodes_delete_node($form, &$form_state) {
  * @return bool
  *   TRUE if the node was saved successfully, FALSE otherwise.
  */
-function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides) {
+function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &$context) {
   // Move title and body back.
   $node_fields['right']['node']['body'] = $node_fields['right']['body'];
   $node_fields['right']['node']['title'] = $node_fields['right']['title'];
+  // Update batch operation progressbar.
+  $context['message'] = t('Saving node "@title"', array('@title' => $node_fields['right']['node']['title']));
+  $context['results'][] = $node_fields['right']['node']['title'];
+
   unset($node_fields['right']['body']);
   unset($node_fields['right']['title']);
   // Prepare a new node for saving.
