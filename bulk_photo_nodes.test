@@ -3,17 +3,27 @@
  * @file
  * Tests for the bulk_photo_nodes module.
  */
-class BulkPhotoNodesTestCase extends DrupalWebTestCase {
-  protected $privileged_user;
 
+/**
+ * Tests the functionality of the bulk_photo_nodes module.
+ */
+class BulkPhotoNodesTestCase extends DrupalWebTestCase {
+  protected $privilegedUser;
+
+  /**
+   * Creates and logs in a user to test configuration of bulk_photo_nodes.
+   */
   public function setUp() {
     parent::setUp('bulk_photo_nodes');
-    $this->privileged_user = $this->drupalCreateUser(array(
+    $this->privilegedUser = $this->drupalCreateUser(array(
       'administer content types', 'administer nodes', 'bypass node access', 'create bulk photo nodes',
     ));
-    $this->drupalLogin($this->privileged_user);
+    $this->drupalLogin($this->privilegedUser);
   }
 
+  /**
+   * Show the test on the at the tests page.
+   */
   public static function getInfo() {
     return array(
       'name' => 'Bulk Photo Nodes functionality',

@@ -9,7 +9,7 @@
  */
 function bpn_flickr_permission() {
   return array(
-    'use bpn_flickr module' =>  array(
+    'use bpn_flickr module' => array(
       'title' => t('Create public flickr bulk photo nodes'),
     ),
   );
