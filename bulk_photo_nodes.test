@@ -14,7 +14,7 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
    * Creates and logs in a user to test configuration of bulk_photo_nodes.
    */
   public function setUp() {
-    parent::setUp('bulk_photo_nodes');
+    parent::setUp('bulk_photo_nodes', 'bpn_upload');
     $this->privilegedUser = $this->drupalCreateUser(array(
       'administer content types', 'administer nodes', 'bypass node access', 'create bulk photo nodes',
     ));
