@@ -1,6 +1,7 @@
 name = Bulk Photo Nodes
 description = "Allows for bulk creation of nodes with images and other metadata"
 core = 7.x
+package = Bulk Photo Nodes
 dependencies[] = field
 dependencies[] = file
 dependencies[] = image

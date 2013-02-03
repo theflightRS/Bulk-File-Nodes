@@ -1,4 +1,5 @@
 name = Bulk Photo Nodes Flickr Private
+package = Bulk Photo Nodes
 core = 7.x
 dependencies[] = flickrapi
 dependencies[] = bulk_photo_nodes
