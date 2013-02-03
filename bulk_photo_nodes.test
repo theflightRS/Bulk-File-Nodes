@@ -70,8 +70,15 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
     $vars = variable_get('bulk_photo_node_types');
     $this->assertText('Bulk photo node settings saved.', 'Bulk photo node settings saved.');
     $this->assertTrue($vars[$type->name] == 'field_bulk_photo_nodes', "System variables saved after form submission.");
-    $this->drupalGet("admin/structure/types/manage/{$type->name}");
     $this->drupalGet("node/add/{$type->name}");
     $this->assertText('Upload Images', 'Bulk Photo Nodes successfully overriding node add form.');
+
+    // Ensure that after saving a content type without changing BPN settings,
+    // no message text displays.
+    $edit = array(
+      'bulk_photo_nodes[image_field]' => 'field_bulk_photo_nodes',
+    );
+    $this->drupalPost("admin/structure/types/manage/{$type->name}", $edit, t('Save content type'));
+    $this->assertNoText('Bulk photo node settings saved.', "Don't save bulk_photo_nodes settings unless changed.");
   }
 }
