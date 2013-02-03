@@ -6,4 +6,4 @@ dependencies[] = field
 dependencies[] = file
 dependencies[] = image
 dependencies[] = node
-files[] = bulk_photo_nodes.test
+files[] = tests/bulk_photo_nodes.test
