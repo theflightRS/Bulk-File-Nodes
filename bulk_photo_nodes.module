@@ -58,9 +58,9 @@ function bulk_photo_nodes_form_node_type_form_alter(&$form, &$form_state, $form_
 function bulk_photo_nodes_submit($form, &$form_state) {
   $image_field = $form_state['values']['bulk_photo_nodes']['image_field'];
   $node_type = $form['#node_type']->type;
-  if (!empty($image_field) && $form['bulk_photo_nodes']['image_field']['#default_value'] != $image_field) {
-    // If the user has selected a value.
-    $bpn_var = variable_get('bulk_photo_node_types');
+  $bpn_var = variable_get('bulk_photo_node_types');
+  if (!empty($image_field) && $image_field != $bpn_var[$node_type]) {
+    // Never runs.
     if ($image_field == 'none') {
       if (is_array($bpn_var) && array_key_exists($node_type, $bpn_var)) {
         unset($bpn_var[$node_type]);
