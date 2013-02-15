@@ -616,11 +616,11 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       );
     }
     if (!empty($element['#autocomplete_path'])) {
-      $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
+      $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_autocomplete_validate');
     }
     elseif (!empty($element['#type']) && $element['#type'] == 'select') {
       if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
-        $element['#element_validate'] = array('bpn_taxonomy_validate');
+        $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_validate');
       }
     }
   }
@@ -634,12 +634,12 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     );
     if (!empty($element['#autocomplete_path'])) {
       // Add custom validation for autocomplete taxonomy textfields.
-      $element['#element_validate'] = array('bpn_taxonomy_autocomplete_validate');
+      $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_autocomplete_validate');
     }
     elseif (!empty($element['#type']) && $element['#type'] == 'select') {
       // Add custom validation for taxonomy selects.
       if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
-        $element['#element_validate'] = array('bpn_taxonomy_validate');
+        $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_validate');
       }
     }
   }
@@ -715,7 +715,7 @@ function bulk_photo_nodes_is_required(&$element) {
 /**
  * Validates taxonomy autocomplete terms.
  */
-function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
+function bulk_photo_nodes_taxonomy_autocomplete_validate(&$element, &$form_state) {
   $value = array();
   if ($tags = $element['#value']) {
     // Collect candidate vocabularies.
@@ -754,7 +754,7 @@ function bpn_taxonomy_autocomplete_validate(&$element, &$form_state) {
 /**
  * Validates selected taxonomy terms.
  */
-function bpn_taxonomy_validate(&$element, &$form_state) {
+function bulk_photo_nodes_taxonomy_validate(&$element, &$form_state) {
   if ($element['#value'] !== '_none') {
     $term = array(
       0 => array(
