@@ -4,5 +4,5 @@ jQuery(document).ready(function($) {
   });
   $('#bpn-flickr-form').ajaxSuccess(function(){
     $('#edit-override-fields-finish').removeAttr('disabled');
-  } );
-} );
+  });
+});
