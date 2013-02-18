@@ -1,5 +1,6 @@
 name = Bulk Photo Nodes Upload
 package = Bulk Photo Nodes
+description = Integrate plupload with bulk photo nodes.
 core = 7.x
 dependencies[] = plupload
 dependencies[] = bulk_photo_nodes
