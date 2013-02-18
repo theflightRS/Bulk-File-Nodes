@@ -41,7 +41,7 @@ var bpnFlickrCount = 0;
       });
 
     } // attach
-  
-  } // Drupal.behaviors.bulkphotonode
-  
+
+  }; // Drupal.behaviors.bulkphotonode
+
 })(jQuery);
