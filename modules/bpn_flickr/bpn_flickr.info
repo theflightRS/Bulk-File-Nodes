@@ -1,5 +1,6 @@
 name = Bulk Photo Nodes Flickr
 package = Bulk Photo Nodes
+description = Import public photos from flickr.
 core = 7.x
 dependencies[] = flickrapi
 dependencies[] = bulk_photo_nodes
