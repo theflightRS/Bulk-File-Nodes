@@ -509,7 +509,8 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &
   // Move the file from public to field-defined destination.
   $options = bulk_photo_nodes_get_file_info($node_type);
   $image_field_name = $options['field_name'];
-  $image_field = (object) $node_fields['right']['node'][$image_field_name][LANGUAGE_NONE][0];
+  $image_field_ref =& $node->{$image_field_name}[LANGUAGE_NONE][0];
+  $image_field = (object) $node->{$image_field_name}[LANGUAGE_NONE][0];
   $extension = pathinfo($image_field->filename, PATHINFO_EXTENSION);
   $query_string = "SELECT COUNT(nid) FROM {node} WHERE type = :node_type AND uid = :uid";
   $images_count = db_query($query_string, array(
@@ -522,7 +523,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &
   }
   $destination = $options['scheme'] . $image_field->uid . '-' . $images_count . '.' . $extension;
   $image_field->filename = $image_field->uid . '-' . $images_count . '.' . $extension;
-  file_move($image_field, $destination, FILE_EXISTS_REPLACE);
+  $image_field_ref = (array) file_move($image_field, $destination, FILE_EXISTS_REPLACE);
 
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
