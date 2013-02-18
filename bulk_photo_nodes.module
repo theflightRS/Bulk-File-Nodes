@@ -232,6 +232,10 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   if (!empty($_SESSION['saved_files'])) {
     $form_state['saved_files'] = $_SESSION['saved_files'];
   }
+  if (empty($form_state['saved_files'])) {
+    drupal_goto("node/add/$form_state[node_type]");
+  }
+
   foreach ($form_state['saved_files'] as $key => $file) {
     $extra_info = !empty($file['extra_info']) ? $file['extra_info'] : array();
     $vars = array(
@@ -370,11 +374,9 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
   bulk_photo_nodes_recursive_ajax($form['override_fields']['fields']);
 
   if (!empty($form_state['values']['override_fields']['fields'])) {
+    // Required/optional logic.
     $override_node = (object) $form_state['values']['override_fields']['fields'];
     $override_node->type = $form_state['node_type'];
-  }
-
-  if (isset($form_state['input']['override_fields']['fields'])) {
     foreach ($form_state['input']['override_fields']['fields'] as $field_name => $field) {
       // Check if field is empty.
       $field_has_value = bulk_photo_nodes_check_field_empty($field_name, $override_node);
@@ -405,7 +407,6 @@ function bulk_photo_nodes_add_form($form, &$form_state) {
       }
     }
   }
-
   drupal_alter('bulk_photo_nodes_overrides', $form, $form_state);
   return $form;
 }
@@ -470,6 +471,7 @@ function bulk_photo_nodes_delete_node($form, &$form_state) {
   $key = $form_state['triggering_element']['#name'];
   file_delete($form_state['saved_files'][$key]['file_object']);
   unset($form_state['saved_files'][$key]);
+  unset($form_state['values']['nodes'][$key]);
   $form_state['removal'] = $key;
   $form_state['rebuild'] = TRUE;
 }
