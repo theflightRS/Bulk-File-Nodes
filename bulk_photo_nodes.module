@@ -555,7 +555,14 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &
       $is_empty = empty($field_values);
     }
     if ($is_empty) {
-      $node->$field_name = $node_overrides[$field_name];
+      //The empty() language construct cannot accept function return values
+      $check_empty = _bulk_photo_nodes_array_filter($node_overrides[$field_name]);
+      if(!empty($check_empty)) {
+        $node->$field_name = $node_overrides[$field_name];
+      }
+      else {
+        unset($node->$field_name);
+      }
     }
     else {
       $node->$field_name = $field_values;
@@ -825,4 +832,25 @@ function bulk_photo_nodes_chosen_form($chosen_form = NULL) {
     $form_id = $chosen_form;
   }
   return $form_id;
+}
+
+/**
+ * Recursively removes empty values from an array. Helper function for saving
+ * nodes.
+ *
+ * @param array $input
+ *   The array to filter.
+ */
+function _bulk_photo_nodes_array_filter($input) {
+  if(is_array($input)) {
+    foreach ($input as &$value) {
+      if (is_array($value)) {
+        $value = _bulk_photo_nodes_array_filter($value);
+      }
+    }
+    return array_filter($input);
+  }
+  else {
+    return false;
+  }
 }
