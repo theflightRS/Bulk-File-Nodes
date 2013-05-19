@@ -556,6 +556,23 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &
   $image_field->filename = $image_field->uid . '-' . $images_count . '.' . $extension;
   $image_field_ref = (array) file_move($image_field, $destination, FILE_EXISTS_REPLACE);
 
+  // Correctly set all fields for the node.
+  $node = bulk_photo_nodes_prepare_fields($node_fields, $node, $node_overrides, $image_field_name);
+
+  drupal_alter('bulk_photo_nodes_node', $node, $node_fields, $node_overrides);
+
+  if (!isset($node->path)) {
+    $node->path = array();
+  }
+  $node->path['pathauto'] = TRUE;
+  node_save($node);
+  return (!empty($node->nid)) ? TRUE : FALSE;
+}
+
+/**
+ * Saves all form field values as node properties.
+ */
+function bulk_photo_nodes_prepare_fields(&$node_fields, $node, &$node_overrides, $image_field_name) {
   foreach ($node_fields['right']['node'] as $field_name => $field_values) {
     // Iterate through fields. Convert form values to properties of the node.
     if ($field_name == $image_field_name) {
@@ -613,13 +630,7 @@ function bulk_photo_nodes_save_node($node_type, $node_fields, $node_overrides, &
       $node->$field_name = $field_values;
     }
   }
-  drupal_alter('bulk_photo_nodes_node', $node, $node_fields, $node_overrides);
-  if (!isset($node->path)) {
-    $node->path = array();
-  }
-  $node->path['pathauto'] = TRUE;
-  node_save($node);
-  return (!empty($node->nid)) ? TRUE : FALSE;
+  return $node;
 }
 
 /**
