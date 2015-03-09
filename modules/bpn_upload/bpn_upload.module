@@ -92,7 +92,11 @@ function bpn_upload_form_step_1_submit($form, &$form_state) {
       $file = plupload_file_uri_to_object($destination);
       file_save($file);
       if (function_exists('exif_read_data')) {
-        $extra_info = exif_read_data(drupal_realpath($destination));
+        $read_data_compatible_types = array(IMAGETYPE_JPEG, IMAGETYPE_TIFF_II, IMAGETYPE_TIFF_MM);
+        $type_of_image = exif_imagetype($destination);
+        if (in_array($type_of_image, $read_data_compatible_types)) {
+          $extra_info = exif_read_data(drupal_realpath($destination));
+        }
       }
       $form_state['saved_files'][] = array(
         'extra_info' => (!empty($extra_info)) ? $extra_info : FALSE,
