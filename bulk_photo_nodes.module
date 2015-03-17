@@ -587,13 +587,13 @@ function bulk_photo_nodes_prepare_fields(&$node_fields, $node, &$node_overrides,
         $items = field_get_items('node', $node, $field_name);
         if (is_array($items)) {
           foreach ($items as $item) {
-            if (!$empty_function($item, $field_name)) {
+            if (!$empty_function($item, $field_info)) {
               $is_empty = FALSE;
             }
           }
         }
         elseif (!is_array($items) && !empty($items)) {
-          if (!$empty_function($items, $field_name)) {
+          if (!$empty_function($items, $field_info)) {
             $is_empty = FALSE;
           }
         }
@@ -663,16 +663,7 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
     foreach (element_children($element) as $child) {
       bulk_photo_nodes_recursive_ajax($element[$child]);
     }
-    if (isset($element['#ajax']) && is_array($element['#ajax'])) {
-      $element['#ajax'][] = array(
-        'event' => 'change',
-        'wrapper' => 'bpn-nodes',
-        'callback' => 'bulk_photo_nodes_add_form_ajax',
-        'method' => 'replace',
-        'progress' => array('type' => 'none'),
-      );
-    }
-    else {
+    if (empty($element['#ajax'])) {
       $element['#ajax'] = array(
         'event' => 'change',
         'wrapper' => 'bpn-nodes',
@@ -681,30 +672,46 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
         'progress' => array('type' => 'none'),
       );
     }
+    elseif ($element['#ajax']['callback'] == 'field_add_more_js') {
+      $element['#element_validate'] = array('bulk_photo_nodes_add_more_button_validate');
+      $element['#ajax']['callback'] = 'bulk_photo_nodes_field_add_more_js';
+    }
     if (!empty($element['#autocomplete_path'])) {
-      $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_autocomplete_validate');
+      $field_info = field_info_field($element['#field_name']);
+      if ($field_info['type'] == 'entityreference') {
+        $element['#element_validate'] = array('bulk_photo_nodes_entityreference_autocomplete_validate');
+      }
     }
     elseif (!empty($element['#type']) && $element['#type'] == 'select') {
-      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'target_id') {
         $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_validate');
       }
     }
   }
   else {
-    $element['#ajax'] = array(
-      'event' => 'change',
-      'wrapper' => 'bpn-nodes',
-      'callback' => 'bulk_photo_nodes_add_form_ajax',
-      'method' => 'replace',
-      'progress' => array('type' => 'none'),
-    );
+    if (empty($element['#ajax'])) {
+      $element['#ajax'] = array(
+        'event' => 'change',
+        'wrapper' => 'bpn-nodes',
+        'callback' => 'bulk_photo_nodes_add_form_ajax',
+        'method' => 'replace',
+        'progress' => array('type' => 'none'),
+      );
+    }
+    elseif ($element['#ajax']['callback'] == 'field_add_more_js') {
+      $element['#element_validate'] = array('bulk_photo_nodes_add_more_button_validate');
+      $element['#ajax']['callback'] = 'bulk_photo_nodes_field_add_more_js';
+    }
     if (!empty($element['#autocomplete_path'])) {
       // Add custom validation for autocomplete taxonomy textfields.
-      $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_autocomplete_validate');
+      $field_info = field_info_field($element['#field_name']);
+      if ($field_info['type'] == 'entityreference') {
+        $element['#element_validate'] = array('bulk_photo_nodes_entityreference_autocomplete_validate');
+      }
     }
     elseif (!empty($element['#type']) && $element['#type'] == 'select') {
       // Add custom validation for taxonomy selects.
-      if (!empty($element['#value_key']) && $element['#value_key'] == 'tid') {
+      if (!empty($element['#value_key']) && $element['#value_key'] == 'target_id') {
         $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_validate');
       }
     }
@@ -779,59 +786,75 @@ function bulk_photo_nodes_is_required(&$element) {
 }
 
 /**
- * Validates taxonomy autocomplete terms.
- */
-function bulk_photo_nodes_taxonomy_autocomplete_validate(&$element, &$form_state) {
-  $value = array();
-  if ($tags = $element['#value']) {
-    // Collect candidate vocabularies.
-    $field_info = field_info_field($element['#field_name']);
-    $field_instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
-    $vocabularies = array();
-    foreach ($field_info['settings']['allowed_values'] as $tree) {
-      if ($vocabulary = taxonomy_vocabulary_machine_name_load($tree['vocabulary'])) {
-        $vocabularies[$vocabulary->vid] = $vocabulary;
-      }
-    }
-
-    // Translate term names into actual terms.
-    $typed_terms = drupal_explode_tags($tags);
-    foreach ($typed_terms as $typed_term) {
-      // See if the term exists in the chosen vocabulary and return the tid;
-      // otherwise, create a new 'autocreate' term for insert/update.
-      if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array_keys($vocabularies)))) {
-        $term = array_pop($possibilities);
-      }
-      else {
-        $vocabulary = reset($vocabularies);
-        $term = array(
-          'tid' => 'autocreate',
-          'vid' => $vocabulary->vid,
-          'name' => $typed_term,
-          'vocabulary_machine_name' => $vocabulary->machine_name,
-        );
-      }
-      $value[] = (array) $term;
-    }
-  }
-  form_set_value($element, $value, $form_state);
-}
-
-/**
  * Validates selected taxonomy terms.
  */
 function bulk_photo_nodes_taxonomy_validate(&$element, &$form_state) {
   if ($element['#value'] !== '_none') {
     $term = array(
       0 => array(
-        'tid' => $element['#value'],
+        'target_id' => is_array($element['#value']) ? reset($element['#value']) : $element['#value'],
       ),
     );
+    form_set_value($element, $term, $form_state);
   }
-  else {
-    $term = 0;
+}
+
+/**
+ * Validates selected entityreference fields.
+ */
+function bulk_photo_nodes_entityreference_autocomplete_validate(&$element, &$form_state, $form) {
+  if (!empty($element['#value'])) {
+    $field = field_info_field($element['#field_name']);
+    $field_name = $element['#field_name'];
+
+    // Take "label (entity id)', match the id from parenthesis.
+    if (preg_match("/.+\((\d+)\)/", $element['#value'], $matches)) {
+      $value = $matches[1];
+    }
+    else {
+      // Try to get a match from the input string when the user didn't use the
+      // autocomplete but filled in a value manually.
+
+      $handler = entityreference_get_selection_handler($field);
+      $instance = field_info_instance($element['#entity_type'], $field_name, $element['#bundle']);
+      $handler = entityreference_get_selection_handler($field, $instance);
+      $value = $handler->validateAutocompleteInput($element['#value'], $element, $form_state, $form);
+    }
+
+    if ($field['settings']['target_type'] == 'taxonomy_term') {
+      $value_array = array(
+        0 => array(
+          'target_id' => $value,
+        ),
+      );
+      form_set_value($element, $value_array, $form_state);
+    }
+    else {
+      // Update the value of this element so the field can validate the product IDs.
+      form_set_value($element, $value, $form_state);
+    }
+
   }
-  form_set_value($element, $term, $form_state);
+}
+
+/**
+ * Removes value of Add more button
+ */
+function bulk_photo_nodes_add_more_button_validate(&$element, &$form_state, $form) {
+  $ref = &$form_state['values'];
+
+  end($element['#parents']);
+  $last_key = key($element['#parents']);
+
+  foreach ($element['#parents'] as $key => $parent) {
+    if ($key == $last_key) {
+      unset($ref[$parent]);
+    }
+    else {
+      $ref = &$ref[$parent];
+    }
+  }
+
 }
 
 /**
@@ -855,14 +878,14 @@ function bulk_photo_nodes_check_field_empty($field_name, $node) {
     if (is_array($field_items)) {
       // Multi-value field.
       foreach ($field_items as $item) {
-        if (!$empty_function($item, $field_name)) {
+        if (!$empty_function($item, $field_info)) {
           $field_has_value = TRUE;
         }
       }
     }
     elseif (!is_array($field_items) && !empty($field_items)) {
       // String/numeric value.
-      if (!$empty_function($field_items, $field_name)) {
+      if (!$empty_function($field_items, $field_info)) {
         $field_has_value = TRUE;
       }
       else {
@@ -913,4 +936,38 @@ function _bulk_photo_nodes_array_filter($input) {
   else {
     return FALSE;
   }
+}
+
+/**
+ * Forked Ajax callback in response to a new empty widget being added to the form.
+ *
+ * This returns the new page content to replace the page content made obsolete
+ * by the form submission.
+ *
+ * @see field_add_more_submit()
+ */
+function bulk_photo_nodes_field_add_more_js($form, $form_state) {
+  $button = $form_state['triggering_element'];
+
+  // Go one level up in the form, to the widgets container.
+  $element = drupal_array_get_nested_value($form, array_slice($button['#array_parents'], 0, -1));
+  $field_name = $element['#field_name'];
+  $langcode = $element['#language'];
+  $parents = $element['#field_parents'];
+
+  if (empty($field_name)) {
+  	return;
+  }
+
+  $field = field_info_field($field_name);
+  if ($field['cardinality'] != FIELD_CARDINALITY_UNLIMITED) {
+    return;
+  }
+
+  // Add a DIV around the delta receiving the Ajax effect.
+  $delta = $element['#max_delta'];
+  $element[$delta]['#prefix'] = '<div class="ajax-new-content">' . (isset($element[$delta]['#prefix']) ? $element[$delta]['#prefix'] : '');
+  $element[$delta]['#suffix'] = (isset($element[$delta]['#suffix']) ? $element[$delta]['#suffix'] : '') . '</div>';
+
+  return $element;
 }
