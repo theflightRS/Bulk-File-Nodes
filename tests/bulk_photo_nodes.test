@@ -65,18 +65,25 @@ class BulkPhotoNodesTestCase extends DrupalWebTestCase {
     // add form is overridden.
     $edit = array(
       'bulk_photo_nodes[image_field]' => 'field_bulk_photo_nodes',
+      'bulk_photo_nodes[override_add_form]' => '1',
     );
     $this->drupalPost("admin/structure/types/manage/{$type->name}", $edit, t('Save content type'));
     $vars = variable_get('bulk_photo_node_types');
     $this->assertText('Bulk photo node settings saved.', 'Bulk photo node settings saved.');
     $this->assertTrue($vars[$type->name] == 'field_bulk_photo_nodes', "System variables saved after form submission.");
+    // Normal node add form is overridden by default.
     $this->drupalGet("node/add/{$type->name}");
+    $this->assertTrue(bulk_photo_nodes_is_bpn_add_page($type->name), 'The node add form is a Bulk Photo Nodes form.');
     $this->assertText('Upload Images', 'Bulk Photo Nodes successfully overriding node add form.');
+    // The same form should also be available at its own path.
+    $this->drupalGet("node/add/{$type->name}/bulk");
+    $this->assertText('Upload Images', 'Bulk Photo Nodes has own path for uploads.');
 
     // Ensure that after saving a content type without changing BPN settings,
     // no message text displays.
     $edit = array(
       'bulk_photo_nodes[image_field]' => 'field_bulk_photo_nodes',
+      'bulk_photo_nodes[override_add_form]' => '1',
     );
     $this->drupalPost("admin/structure/types/manage/{$type->name}", $edit, t('Save content type'));
     $this->assertNoText('Bulk photo node settings saved.', "Don't save bulk_photo_nodes settings unless changed.");

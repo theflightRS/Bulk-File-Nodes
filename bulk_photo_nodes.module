@@ -16,6 +16,37 @@ function bulk_photo_nodes_permission() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function bulk_photo_nodes_menu() {
+  $items = array();
+
+  $bpn_var = variable_get('bulk_photo_node_types');
+  if (!empty($bpn_var)) {
+
+    // Taken from node.module
+    node_type_cache_reset();
+    foreach (node_type_get_types() as $type) {
+      if (!empty($bpn_var[$type->type]) && $bpn_var[$type->type] !== 'none') {
+        $type_url_str = str_replace('_', '-', $type->type);
+        $items['node/add/' . $type_url_str . '/bulk'] = array(
+          'title' => 'Upload Images',
+          'title callback' => 'check_plain',
+          'page callback' => 'bulk_photo_nodes_page_get',
+          'page arguments' => array($type->type),
+          'access callback' => 'user_access',
+          'access arguments' => array('create bulk photo nodes'),
+          'description' => $type->description,
+          'file' => 'node.pages.inc',
+          'file path' => drupal_get_path('module', 'node'),
+        );
+      }
+    }
+  }
+
+  return $items;
+}
+/**
  * Implements hook_menu_alter().
  *
  * Replaces standard node add pages with bulk pages.
@@ -23,12 +54,21 @@ function bulk_photo_nodes_permission() {
 function bulk_photo_nodes_menu_alter(&$items) {
   $bpn_var = variable_get('bulk_photo_node_types');
   if (!empty($bpn_var)) {
-    foreach (array_keys($bpn_var) as $node_type) {
-      $node_add_path = 'node/add/' . strtr($node_type, '_', '-');
-      $items[$node_add_path]['page callback'] = 'bulk_photo_nodes_page';
-      $items[$node_add_path]['page arguments'] = array($node_type);
-      $items[$node_add_path]['access callback'] = 'user_access';
-      $items[$node_add_path]['access arguments'] = array('create bulk photo nodes');
+
+    foreach (entity_get_info() as $entity_type => $entity_info) {
+      if ($entity_type !== 'node') {
+        continue;
+      }
+
+      foreach (array_keys($entity_info['bundles']) as $bundle) {
+        if (isset($bpn_var[$bundle]) && !empty($bpn_var[$bundle . '_override']) && (!empty($bpn_var[$bundle]) || $bpn_var[$bundle] !== 'none')) {
+          $node_add_path = 'node/add/' . strtr($bundle, '_', '-');
+          $items[$node_add_path]['page callback'] = 'bulk_photo_nodes_page';
+          $items[$node_add_path]['page arguments'] = array($bundle);
+          $items[$node_add_path]['access callback'] = 'user_access';
+          $items[$node_add_path]['access arguments'] = array('create bulk photo nodes');
+        }
+      }
     }
   }
 }
@@ -49,6 +89,21 @@ function bulk_photo_nodes_form_node_type_form_alter(&$form, &$form_state, $form_
     '#default_value' => bulk_photo_nodes_get_image_field($form['#node_type']->type),
     '#options' => bulk_photo_nodes_get_image_fields($form['#node_type']->type),
   );
+
+  // Build path for use in description.
+  $path = 'node/add/' . strtr($form['#node_type']->type, '_', '-') . '/bulk';
+  // Get setting node option.
+  $option = bulk_photo_nodes_get_option($form['#node_type']->type);
+  // If never set before, default to on.
+  $option = $option === 'none' ? 1 : $option;
+  $bpn_var = variable_get('bulk_photo_node_types');
+  $form['bulk_photo_nodes']['override_add_form'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Override add form'),
+    '#description' => t('By default the Bulk options will override the normal node creation form. Separate bulk path !link is always available.', array('!link' => l($path, $path))),
+    '#default_value' => $option,
+  );
+
   $form['#submit'][] = 'bulk_photo_nodes_submit';
 }
 
@@ -57,21 +112,34 @@ function bulk_photo_nodes_form_node_type_form_alter(&$form, &$form_state, $form_
  */
 function bulk_photo_nodes_submit($form, &$form_state) {
   $image_field = $form_state['values']['bulk_photo_nodes']['image_field'];
+  $override_add_form = $form_state['values']['bulk_photo_nodes']['override_add_form'];
   $node_type = $form['#node_type']->type;
-  $bpn_var = variable_get('bulk_photo_node_types');
-  if (!empty($image_field) && $image_field != $bpn_var[$node_type]) {
-    // Never runs.
-    if ($image_field == 'none') {
-      if (is_array($bpn_var) && array_key_exists($node_type, $bpn_var)) {
-        unset($bpn_var[$node_type]);
-      }
+  $orig_bpn_var = variable_get('bulk_photo_node_types', array());
+  $new_bpn_var = $orig_bpn_var;
+
+  // Always save field even if set to none.
+  if ($image_field == 'none') {
+    if (array_key_exists($node_type, $new_bpn_var)) {
+      unset($new_bpn_var[$node_type]);
     }
-    else {
-      $bpn_var[$node_type] = $image_field;
+  }
+  else {
+    $new_bpn_var[$node_type] = $image_field;
+  }
+
+  // Override the form?
+  $new_bpn_var[$node_type . '_override'] = $override_add_form;
+
+  // Only save if something has changed.
+  foreach ($new_bpn_var as $key => $val) {
+    if (!array_key_exists($key, $orig_bpn_var) || $orig_bpn_var[$key] != $val) {
+      // Save as soon as anything's different.
+      variable_set('bulk_photo_node_types', $new_bpn_var);
+      menu_rebuild();
+      drupal_set_message("Bulk photo node settings saved.");
+      // No need to keep checking.
+      continue;
     }
-    variable_set('bulk_photo_node_types', $bpn_var);
-    menu_rebuild();
-    drupal_set_message("Bulk photo node settings saved.");
   }
 }
 
@@ -116,6 +184,20 @@ function bulk_photo_nodes_get_image_field($node_type) {
 }
 
 /**
+ * Get a named option for a given node type.
+ * 
+ * Currently defaults to 'override' as this is the only available option.
+ */
+function bulk_photo_nodes_get_option($node_type, $option = 'override') {
+  $bpn_var = variable_get('bulk_photo_node_types');
+  if (is_array($bpn_var)) {
+    $key = $node_type . '_' . $option;
+    return (array_key_exists($key, $bpn_var)) ? $bpn_var[$key] : 'none';
+  }
+  return 'none';
+}
+
+/**
  * Page callback: Displays the first step of the bulk photo node upload form.
  *
  * In case the user would like to see the normal node/add form, simply supply
@@ -130,49 +212,50 @@ function bulk_photo_nodes_get_image_field($node_type) {
  * @see bulk_photo_nodes_menu_alter()
  */
 function bulk_photo_nodes_page($node_type) {
-
   if (bulk_photo_nodes_is_bpn_add_page($node_type)) {
-
-    drupal_add_css(drupal_get_path('module', 'bulk_photo_nodes') . '/css/bulk_photo_nodes_default.css');
-
-    $content = array();
-    $form_names = module_invoke_all('bulk_photo_nodes_method');
-    $content_forms = array();
-    $chosen_form = FALSE;
-
-    foreach ($form_names as $form_name) {
-
-      $form = drupal_get_form($form_name, $node_type);
-      $content_forms[] = $form;
-
-      if (array_key_exists('#bpn_chosen_form', $form)) {
-        $chosen_form = $form;
-        break;
-      }
-    }
-
-    // If we've chosen a form, only include that one.
-    if ($chosen_form) {
-      $content['forms'] = array($chosen_form);
-    }
-    else {
-      $content['forms'] = $content_forms;
-    }
-
-    return $content;
-
+    return bulk_photo_nodes_page_get($node_type);
   }
   else {
-
     $form = node_add($node_type);
     return $form;
-
   }
-
 }
 
 /**
- * Determines if the current node add form is used by bulk photo nodes.
+ * Return bulk node add form.
+ */
+function bulk_photo_nodes_page_get($node_type) {
+  drupal_add_css(drupal_get_path('module', 'bulk_photo_nodes') . '/css/bulk_photo_nodes_default.css');
+
+  $content = array();
+  $form_names = module_invoke_all('bulk_photo_nodes_method');
+  $content_forms = array();
+  $chosen_form = FALSE;
+
+  foreach ($form_names as $form_name) {
+
+    $form = drupal_get_form($form_name, $node_type);
+    $content_forms[] = $form;
+
+    if (array_key_exists('#bpn_chosen_form', $form)) {
+      $chosen_form = $form;
+      break;
+    }
+  }
+
+  // If we've chosen a form, only include that one.
+  if ($chosen_form) {
+    $content['forms'] = array($chosen_form);
+  }
+  else {
+    $content['forms'] = $content_forms;
+  }
+
+  return $content;
+}
+
+/**
+ * Determines if a given node type's add form should be displayed as a BPN form.
  *
  * @return bool
  *   TRUE if the current node add form  is used by bpn, FALSE otherwise.
@@ -181,12 +264,10 @@ function bulk_photo_nodes_is_bpn_add_page($node_type) {
   $query = drupal_get_query_parameters();
   if (!is_array($query) || !array_key_exists('override', $query)) {
     $bpn_var = variable_get('bulk_photo_node_types');
-    if (!empty($bpn_var)) {
-      foreach (array_keys($bpn_var) as $bpn_node_type) {
-        if ($bpn_node_type == $node_type) {
-          return TRUE;
-        }
-      }
+    $has_bpn_field = !empty($bpn_var) && isset($bpn_var[$node_type]) && $bpn_var[$node_type] !== 'none';
+    $is_overridden = isset($bpn_var[$node_type . '_override']) && $bpn_var[$node_type . '_override'] != 1;
+    if ($has_bpn_field && !$is_overridden) {
+      return TRUE;
     }
   }
   return FALSE;
