@@ -445,7 +445,7 @@ function bulk_photo_nodes_create_subform(&$form, &$form_state) {
       '#weight' => 10,
     );
     // Manually add a title form item since it's not a field.
-    $default_title = array_key_exists('title', $extra_info) ? $extra_info['title'] : '';
+    $default_title = array_key_exists('title', $extra_info) ? $extra_info['title'] : _bulk_photo_nodes_title_from_filename($file['file_object']->filename);
     $form['nodes'][$key]['right']['title'] = array(
       '#type' => 'textfield',
       '#title' => 'Title',
@@ -1035,6 +1035,35 @@ function _bulk_photo_nodes_empty_field_value($field_value) {
     return FALSE;
   }
   return TRUE;
+}
+
+/**
+ * Helper function to generate a default node title from a given filename.
+ */
+function _bulk_photo_nodes_title_from_filename($filename) {
+  // Separate filename from extension/path/etc.
+  $path_parts = pathinfo($filename);
+  $title = $path_parts['filename'];
+
+  // Replace underscores, dashes, etc. with spaces.
+  $title = str_replace('-', ' ', $title);
+  $title = str_replace('_', ' ', $title);
+  $title = str_replace('.', ' ', $title);
+
+  // Replace double spaces with single space.
+  $title = preg_replace('!\s+!', ' ', $title);
+
+  // Trim spaces from front and back.
+  $title = trim($title, ' ');
+
+  // Capitalize.
+  $title = ucwords($title);
+
+  // Sanitize.
+  $title = check_plain($title);
+
+  // Return.
+  return $title;
 }
 
 /**
