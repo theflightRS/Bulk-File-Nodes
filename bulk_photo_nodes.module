@@ -1017,11 +1017,24 @@ function _bulk_photo_nodes_array_filter($input) {
         $value = _bulk_photo_nodes_array_filter($value);
       }
     }
-    return array_filter($input);
+    return array_filter($input, '_bulk_photo_nodes_empty_field_value');
   }
   else {
     return FALSE;
   }
+}
+
+/**
+ * Check if field value is empty.
+ *
+ * '_none' is a reserved value that is used for select lists, etc. that have
+ * no selection, so should be considered empty.
+ */
+function _bulk_photo_nodes_empty_field_value($field_value) {
+  if (empty($field_value) || $field_value == '_none') {
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /**
