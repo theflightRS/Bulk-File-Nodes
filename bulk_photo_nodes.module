@@ -769,6 +769,12 @@ function bulk_photo_nodes_recursive_ajax(&$element) {
       }
     }
     elseif (!empty($element['#type']) && $element['#type'] == 'select') {
+      // @todo: Since applying the patch at https://www.drupal.org/node/2278141#comment-9299441
+      // (commit id 3c17363b01e6b4cff64544bb85bd9418c73c7ccd) 'tid' was changed to 'target_id'
+      // here, so bulk_photo_nodes_taxonomy_validate() is now acting on entity reference
+      // fields, and NOT on taxonomy reference fields. Need to figure out which reference
+      // fields this should actually be acting on, and whether the function should be renamed.
+      // Note also that select list validation issues may be related to https://www.drupal.org/node/2454031.
       if (!empty($element['#value_key']) && $element['#value_key'] == 'target_id') {
         $element['#element_validate'] = array('bulk_photo_nodes_taxonomy_validate');
       }
@@ -816,8 +822,9 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
   }
   if (isset($element['#required'])) {
     $element['#required'] = FALSE;
-    // TODO: Unsetting #element_validate seems to cause problems, at least
+    // @todo: Unsetting #element_validate seems to cause problems, at least
     // for taxonomy reference fields. Is there a reason to unset it?
+    // See https://www.drupal.org/node/2446787.
     // $element['#element_validate'] = array();
   }
   $children = element_children($element);
@@ -875,6 +882,15 @@ function bulk_photo_nodes_is_required(&$element) {
 
 /**
  * Validates selected taxonomy terms.
+ *
+ * @todo: Since applying the patch at https://www.drupal.org/node/2278141#comment-9299441
+ * (commit id 3c17363b01e6b4cff64544bb85bd9418c73c7ccd) 'tid' was changed to 'target_id'
+ * here, so bulk_photo_nodes_taxonomy_validate() is now acting on entity reference
+ * fields, and NOT on taxonomy reference fields. Need to figure out which reference
+ * fields this should actually be acting on, and whether the function should be renamed.
+ * See bulk_photo_nodes_recursive_ajax().
+ *
+ * Note also that select list validation issues may be related to https://www.drupal.org/node/2454031.
  */
 function bulk_photo_nodes_taxonomy_validate(&$element, &$form_state) {
   if ($element['#value'] !== '_none') {
