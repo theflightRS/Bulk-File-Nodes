@@ -816,7 +816,9 @@ function bulk_photo_nodes_recursive_set_optional(&$element) {
   }
   if (isset($element['#required'])) {
     $element['#required'] = FALSE;
-    $element['#element_validate'] = array();
+    // TODO: Unsetting #element_validate seems to cause problems, at least
+    // for taxonomy reference fields. Is there a reason to unset it?
+    // $element['#element_validate'] = array();
   }
   $children = element_children($element);
   if ($children) {
