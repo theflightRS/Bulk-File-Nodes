@@ -671,9 +671,16 @@ function bulk_photo_nodes_prepare_fields(&$node_fields, $node, &$node_overrides,
       $is_empty = TRUE;
       if (function_exists($empty_function)) {
         $items = field_get_items('node', $node, $field_name);
+        $lang = entity_language('node', $node);
         if (is_array($items)) {
-          foreach ($items as $item) {
-            if (!$empty_function($item, $field_info)) {
+          // Multi-value fields.
+          foreach ($items as $key => $item) {
+            if ($empty_function($item, $field_info)) {
+              // Need to make sure to unset any empty values before passing
+              // these to the final node, or they will break things.
+              unset($field_values[$lang][$key]);
+            }
+            else {
               $is_empty = FALSE;
             }
           }
