@@ -1,0 +1,6 @@
+[BulkPhotoNodesTestCase]
+name = Bulk Photo Nodes functionality
+description = Tests bulk_photo_nodes content type form.
+group = BulkPhotoNodes
+file = tests/bulk_photo_nodes.test
+
