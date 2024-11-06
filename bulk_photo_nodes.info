@@ -1,9 +1,12 @@
+type = module
 name = Bulk Photo Nodes
-description = "Allows for bulk creation of nodes with images and other metadata"
-core = 7.x
+description = Allows for bulk creation of nodes with images and other metadata
 package = Bulk Photo Nodes
+version = VERSION
+backdrop = 1.x
+files[] = tests/bulk_photo_nodes.test
+configure = admin/config/content/bulk-photo-nodes
 dependencies[] = field
 dependencies[] = file
 dependencies[] = image
 dependencies[] = node
-files[] = tests/bulk_photo_nodes.test
