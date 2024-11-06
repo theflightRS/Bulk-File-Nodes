@@ -4,6 +4,16 @@
  * hooks and helper functions for bulk photo node.
  */
 
+
+/**
+ * Implements hook_autoload_info().
+ */
+function hook_autoload_info() {
+  return array(
+    'ClassName' => 'tests/bulk_photo_nodes.test',
+  );
+}
+
 /**
  * Implements hook_permission().
  */
